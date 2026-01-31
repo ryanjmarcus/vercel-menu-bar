@@ -302,10 +302,10 @@ struct SettingsView: View {
         guard !isValidating else { return }
         
         isValidating = true
-        settings.apiKey = apiKeyInput
         
         // Clear error if token is empty
         if apiKeyInput.isEmpty {
+            settings.apiKey = ""
             api.error = nil
             api.projects = []
             api.deployments = []
@@ -315,6 +315,26 @@ struct SettingsView: View {
         }
         
         Task {
+            // If this is the first time saving a token, request keychain access first
+            let hasSavedBefore = UserDefaults.standard.bool(forKey: "has_saved_token_before")
+            if !hasSavedBefore {
+                let accessGranted = KeychainManager.shared.requestAccess(forKey: "vercel_api_key")
+                
+                await MainActor.run {
+                    if !accessGranted {
+                        // User denied keychain access
+                        isValidating = false
+                        // Optionally show an error message here
+                        return
+                    }
+                }
+            }
+            
+            // Now save the token (this will trigger keychain save)
+            await MainActor.run {
+                settings.apiKey = apiKeyInput
+            }
+            
             await api.fetchProjects(apiKey: apiKeyInput)
             
             await MainActor.run {
