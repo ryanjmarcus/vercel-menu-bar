@@ -160,7 +160,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             .store(in: &cancellables)
     }
     
-    private func updateStatusItemImage() {
+    @MainActor private func updateStatusItemImage() {
         // Only show status badge if user has token and project selected
         let status: DeploymentStatus?
         if settings.hasApiKey && settings.hasSelectedProject {
