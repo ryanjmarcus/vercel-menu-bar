@@ -74,6 +74,8 @@ This will create both a `.dmg` and `.zip` in the `build/` directory.
 2. Click "Create" to generate a new token
 3. Copy the token and paste it into the app's Settings
 
+> **Note:** Your API token is stored securely in macOS Keychain. The first time you save a token, macOS will prompt you to allow keychain access for "Vercel Menu Bar" only.
+
 ## Usage
 
 1. Click the Vercel icon in your menu bar
