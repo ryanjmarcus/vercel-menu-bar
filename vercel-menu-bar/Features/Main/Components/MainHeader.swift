@@ -28,9 +28,11 @@ struct MainHeader: View {
         VStack(spacing: 0) {
             HStack {
                 // Project info
-                HStack(spacing: 8) {
+                HStack(alignment: .center, spacing: 8) {
                     if hasSelectedProject {
+                        // Favicon shows nothing while loading (no fallback triangle)
                         ProjectHeaderFavicon(url: faviconURL)
+                            .offset(y: 1)
                         
                         Text(projectName)
                             .font(.system(size: 13, weight: .regular))

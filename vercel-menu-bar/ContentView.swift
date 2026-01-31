@@ -95,13 +95,22 @@ struct MenuBarView: View {
         }
         .task {
             if settings.hasApiKey {
-                // Fetch projects if we have an API key (needed for favicon)
-                if api.projects.isEmpty {
-                    await api.fetchProjects(apiKey: settings.apiKey)
-                }
+                // Fetch projects (needed for accountId to build favicon URL)
+                await api.fetchProjects(apiKey: settings.apiKey)
+                
                 // Fetch deployments if we have a selected project
                 if settings.hasSelectedProject {
-                    refreshDeployments()
+                    await api.fetchDeployments(
+                        apiKey: settings.apiKey,
+                        projectId: settings.selectedProjectId
+                    )
+                    
+                    // Update cached favicon URL using the fresh deployment ID
+                    if let latestDeployment = api.deployments.first,
+                       let project = api.projects.first(where: { $0.id == settings.selectedProjectId }),
+                       let url = faviconURL(forDeploymentId: latestDeployment.id, project: project) {
+                        settings.selectedProjectFaviconURL = url.absoluteString
+                    }
                 }
             }
         }
@@ -202,7 +211,28 @@ struct MenuBarView: View {
     }
     
     private var currentFaviconURL: URL? {
-        api.projects.first(where: { $0.id == settings.selectedProjectId })?.faviconURL ?? settings.faviconURL
+        // Only use fresh deployment data to build favicon URL
+        // This avoids 404 errors from stale deployment IDs
+        guard let latestDeployment = api.deployments.first,
+              let project = api.projects.first(where: { $0.id == settings.selectedProjectId }) else {
+            // Return nil until we have fresh data - triangle will show briefly
+            return nil
+        }
+        return faviconURL(forDeploymentId: latestDeployment.id, project: project)
+    }
+    
+    /// Build favicon URL using a specific deployment ID
+    private func faviconURL(forDeploymentId deploymentId: String, project: VercelProject) -> URL? {
+        guard let accountId = project.accountId, !accountId.isEmpty else { return nil }
+        
+        guard let encodedProject = project.name.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed),
+              let encodedDeploymentId = deploymentId.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed),
+              let encodedAccountId = accountId.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) else {
+            return nil
+        }
+        
+        let urlString = "https://vercel.com/api/v0/deployments/\(encodedDeploymentId)/favicon?project=\(encodedProject)&readyState=READY&teamId=\(encodedAccountId)&dpl=\(encodedDeploymentId)"
+        return URL(string: urlString)
     }
     
     // MARK: - Main View

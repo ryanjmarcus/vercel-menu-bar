@@ -8,68 +8,134 @@
 import SwiftUI
 import AppKit
 
+// MARK: - Favicon Image Cache
+
+/// Global image cache that persists across view recreations
+final class FaviconCache {
+    static let shared = FaviconCache()
+    
+    private let cache = NSCache<NSURL, NSImage>()
+    
+    private init() {
+        cache.countLimit = 50 // Max 50 images
+    }
+    
+    func get(_ url: URL) -> NSImage? {
+        cache.object(forKey: url as NSURL)
+    }
+    
+    func set(_ image: NSImage, for url: URL) {
+        cache.setObject(image, forKey: url as NSURL)
+    }
+}
+
 // MARK: - Async Favicon
 
-/// A unified favicon component that loads images asynchronously
+/// A unified favicon component that loads images asynchronously with caching
 struct AsyncFavicon: View {
     let url: URL?
     let size: CGFloat
     let cornerRadius: CGFloat
+    let showFallback: Bool
     
-    @State private var loadedImage: NSImage?
+    @State private var displayImage: NSImage?
     
     /// Creates an async favicon with configurable size
     /// - Parameters:
     ///   - url: The URL of the favicon to load
     ///   - size: The size of the favicon (default: 20)
     ///   - cornerRadius: The corner radius (default: 4)
-    init(url: URL?, size: CGFloat = 20, cornerRadius: CGFloat = 4) {
+    ///   - showFallback: Whether to show the triangle fallback when no image (default: true)
+    init(url: URL?, size: CGFloat = 20, cornerRadius: CGFloat = 4, showFallback: Bool = true) {
         self.url = url
         self.size = size
         self.cornerRadius = cornerRadius
+        self.showFallback = showFallback
     }
     
     var body: some View {
-        Group {
-            if let image = loadedImage {
-                Image(nsImage: image)
-                    .resizable()
-                    .aspectRatio(contentMode: .fit)
-            } else {
-                VercelTriangleIcon()
-                    .foregroundColor(.vercelSecondaryText)
+        // Absolutely fixed-size container using min/max constraints
+        faviconContent
+            .frame(minWidth: size, maxWidth: size, minHeight: size, maxHeight: size)
+            .clipShape(RoundedRectangle(cornerRadius: cornerRadius))
+            .onAppear {
+                loadFromCache()
             }
+            .task(id: url) {
+                await loadImage()
+            }
+    }
+    
+    @ViewBuilder
+    private var faviconContent: some View {
+        if let image = displayImage {
+            Image(nsImage: image)
+                .resizable()
+                .aspectRatio(contentMode: .fit)
+        } else if showFallback {
+            VercelTriangleIcon()
+                .foregroundColor(.vercelSecondaryText)
+        } else {
+            // Invisible rectangle that takes up exact space
+            Rectangle()
+                .fill(Color.clear)
         }
-        .frame(width: size, height: size)
-        .cornerRadius(cornerRadius)
-        .task(id: url) {
-            loadedImage = nil
+    }
+    
+    /// Load from cache immediately on appear (synchronous, no flicker)
+    private func loadFromCache() {
+        guard let url = url else { return }
+        if let cached = FaviconCache.shared.get(url) {
+            displayImage = cached
+        }
+    }
+    
+    /// Load image from network (async)
+    private func loadImage() async {
+        guard let url = url else {
+            displayImage = nil
+            return
+        }
+        
+        // Check cache first
+        if let cached = FaviconCache.shared.get(url) {
+            displayImage = cached
+            return
+        }
+        
+        // Fetch from network
+        do {
+            var request = URLRequest(url: url)
+            request.cachePolicy = .reloadIgnoringLocalCacheData
             
-            guard let url = url else { return }
+            let (data, response) = try await URLSession.shared.data(for: request)
             
-            // Try to load the image
-            do {
-                let (data, _) = try await URLSession.shared.data(from: url)
-                
-                // Simply try to create an NSImage - if it works, use it
-                if data.count > 0, let image = NSImage(data: data), image.size.width > 0, image.size.height > 0 {
-                    loadedImage = image
-                }
-            } catch {
-                // Silently fail and show default icon
+            // Check HTTP status code - only accept 200 responses
+            guard let httpResponse = response as? HTTPURLResponse,
+                  httpResponse.statusCode == 200 else {
+                return
             }
+            
+            // Try to create an NSImage
+            if data.count > 0, let image = NSImage(data: data), image.size.width > 0, image.size.height > 0 {
+                // Cache it
+                FaviconCache.shared.set(image, for: url)
+                displayImage = image
+            }
+        } catch {
+            // Silently fail - keep showing whatever we have (cached or triangle)
         }
     }
 }
 
 // MARK: - Convenience Aliases
 
-/// Favicon for project headers (16x16, corner radius 3)
+/// Favicon for project headers (16x16, corner radius 3, no fallback during loading)
 struct ProjectHeaderFavicon: View {
     let url: URL?
     
     var body: some View {
-        AsyncFavicon(url: url, size: 16, cornerRadius: 3)
+        AsyncFavicon(url: url, size: 16, cornerRadius: 3, showFallback: false)
     }
 }
 

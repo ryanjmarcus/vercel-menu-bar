@@ -155,7 +155,8 @@ class SettingsManager: ObservableObject {
     func selectProject(_ project: VercelProject) {
         selectedProjectId = project.id
         selectedProjectName = project.name
-        selectedProjectFaviconURL = project.faviconURL?.absoluteString ?? ""
+        // Don't save favicon URL here - it uses stale latestDeployments data
+        // The favicon URL will be updated after fresh deployments are fetched
     }
     
     // MARK: - Launch at Login

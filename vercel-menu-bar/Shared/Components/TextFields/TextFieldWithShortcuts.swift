@@ -94,6 +94,44 @@ struct TextFieldWithShortcuts: NSViewRepresentable {
     }
 }
 
+// MARK: - Focus Restoration Manager
+
+/// Tracks the last focused text field to restore focus when app becomes active
+/// This enables paste from external apps like Raycast
+private final class FocusRestorationManager {
+    static let shared = FocusRestorationManager()
+    
+    weak var lastFocusedField: NSTextField?
+    private var observer: Any?
+    
+    private init() {
+        // Listen for app activation to restore focus
+        observer = NotificationCenter.default.addObserver(
+            forName: NSApplication.didBecomeActiveNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            self?.restoreFocus()
+        }
+    }
+    
+    func restoreFocus() {
+        guard let field = lastFocusedField,
+              let window = field.window else { return }
+        
+        // Small delay to ensure window is ready
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
+            window.makeFirstResponder(field)
+        }
+    }
+    
+    deinit {
+        if let observer = observer {
+            NotificationCenter.default.removeObserver(observer)
+        }
+    }
+}
+
 // MARK: - Private NSTextField Subclasses
 
 private class TextFieldWithShortcutsNS: NSTextField {
@@ -108,8 +146,20 @@ private class TextFieldWithShortcutsNS: NSTextField {
         fatalError("init(coder:) has not been implemented")
     }
     
+    override func becomeFirstResponder() -> Bool {
+        let result = super.becomeFirstResponder()
+        if result {
+            FocusRestorationManager.shared.lastFocusedField = self
+        }
+        return result
+    }
+    
     override func performKeyEquivalent(with event: NSEvent) -> Bool {
-        guard event.modifierFlags.contains(.command),
+        // Only handle pure Command+key shortcuts (no Shift, Option, Control)
+        // This allows system hotkeys like Cmd+Shift+V (Raycast clipboard) to pass through
+        let commandOnly = event.modifierFlags.intersection(.deviceIndependentFlagsMask) == .command
+        
+        guard commandOnly,
               let key = event.charactersIgnoringModifiers?.lowercased(),
               let editor = currentEditor() else {
             return super.performKeyEquivalent(with: event)
@@ -175,10 +225,22 @@ private class SecureTextFieldWithShortcuts: NSSecureTextField {
         fatalError("init(coder:) has not been implemented")
     }
     
+    override func becomeFirstResponder() -> Bool {
+        let result = super.becomeFirstResponder()
+        if result {
+            FocusRestorationManager.shared.lastFocusedField = self
+        }
+        return result
+    }
+    
     // Override to track actual value separately from masked display
     
     override func performKeyEquivalent(with event: NSEvent) -> Bool {
-        guard event.modifierFlags.contains(.command),
+        // Only handle pure Command+key shortcuts (no Shift, Option, Control)
+        // This allows system hotkeys like Cmd+Shift+V (Raycast clipboard) to pass through
+        let commandOnly = event.modifierFlags.intersection(.deviceIndependentFlagsMask) == .command
+        
+        guard commandOnly,
               let key = event.charactersIgnoringModifiers?.lowercased(),
               let editor = currentEditor() else {
             return super.performKeyEquivalent(with: event)

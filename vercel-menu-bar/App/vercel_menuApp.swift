@@ -29,6 +29,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private let popover = NSPopover()
     private var cancellables = Set<AnyCancellable>()
     private var rightClickMenu: NSMenu!
+    private var clickOutsideMonitor: Any?
     
     @MainActor func applicationDidFinishLaunching(_ notification: Notification) {
         // Initialize the UpdaterManager singleton for automatic updates
@@ -39,6 +40,23 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         setupStatusItem()
         observeStatusUpdates()
         observePopoverClose()
+        observeAppActivation()
+    }
+    
+    private func observeAppActivation() {
+        // When app becomes active again (e.g., returning from Raycast clipboard),
+        // ensure the popover window can receive keyboard events
+        NotificationCenter.default.addObserver(
+            forName: NSApplication.didBecomeActiveNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            guard let self = self else { return }
+            // If popover is shown, make its window key to receive keyboard events
+            if self.popover.isShown {
+                self.popover.contentViewController?.view.window?.makeKey()
+            }
+        }
     }
     
     private func setupEditMenu() {
@@ -91,7 +109,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         quitItem.target = self
         rightClickMenu.addItem(quitItem)
         
-        popover.behavior = .transient
+        // Use applicationDefined so we control when popover closes.
+        // This allows external apps like Raycast clipboard to work without closing the popover.
+        // We manually handle click-outside detection.
+        popover.behavior = .applicationDefined
         popover.contentSize = NSSize(width: 380, height: settings.windowSize.height)
         popover.contentViewController = NSHostingController(rootView: MenuBarView())
         
@@ -182,7 +203,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
     
     @objc private func closePopover() {
-        popover.performClose(nil)
+        closePopoverAndRemoveMonitor()
     }
     
     @objc private func quitApp(_ sender: Any?) {
@@ -192,13 +213,38 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     @objc private func togglePopover(_ sender: Any?) {
         guard let button = statusItem?.button else { return }
         if popover.isShown {
-            popover.performClose(sender)
+            closePopoverAndRemoveMonitor()
         } else {
             popover.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
             popover.contentViewController?.view.window?.makeKey()
             
+            // Add click-outside monitor to close popover when clicking elsewhere
+            addClickOutsideMonitor()
+            
             // Check for app updates when popover opens (with 1-hour cooldown)
             UpdaterManager.shared.checkForUpdateIfNeeded()
         }
+    }
+    
+    private func addClickOutsideMonitor() {
+        // Remove any existing monitor first
+        removeClickOutsideMonitor()
+        
+        // Monitor for clicks outside the popover (global events, i.e., clicks in other apps or desktop)
+        clickOutsideMonitor = NSEvent.addGlobalMonitorForEvents(matching: [.leftMouseDown, .rightMouseDown]) { [weak self] event in
+            self?.closePopoverAndRemoveMonitor()
+        }
+    }
+    
+    private func removeClickOutsideMonitor() {
+        if let monitor = clickOutsideMonitor {
+            NSEvent.removeMonitor(monitor)
+            clickOutsideMonitor = nil
+        }
+    }
+    
+    private func closePopoverAndRemoveMonitor() {
+        removeClickOutsideMonitor()
+        popover.performClose(nil)
     }
 }
