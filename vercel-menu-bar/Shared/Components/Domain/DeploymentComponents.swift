@@ -44,6 +44,11 @@ struct DeploymentRow: View {
                         
                         if deployment.isCurrent {
                             CurrentPillSmall()
+                        } else if deployment.environment == .production && deployment.isPromoted {
+                            // Show promoted icon for non-current production deployments that were promoted
+                            Image(systemName: "arrow.up.circle")
+                                .font(.system(size: 10))
+                                .foregroundColor(.vercelSecondaryText)
                         }
                     }
                 }
