@@ -183,12 +183,36 @@ jobs:
       
       - name: Create DMG
         run: |
-          hdiutil create \
-            -volname "Vercel Menu Bar" \
-            -srcfolder build/export \
-            -ov \
-            -format UDZO \
-            "build/Vercel-Menu-Bar-${{ steps.get_version.outputs.VERSION }}.dmg"
+          # Add Applications symlink
+          ln -s /Applications "build/export/Applications"
+          
+          # Install create-dmg for prettier DMG with background
+          brew install create-dmg || true
+          
+          # Create DMG with background and icon positioning
+          create-dmg \
+            --volname "Vercel Menu Bar" \
+            --background "vercel-menu-bar/Resources/dmg-background.png" \
+            --window-pos 200 120 \
+            --window-size 660 400 \
+            --icon-size 128 \
+            --icon "Vercel Menu Bar.app" 180 200 \
+            --icon "Applications" 480 200 \
+            --hide-extension "Vercel Menu Bar.app" \
+            --no-internet-enable \
+            "build/Vercel-Menu-Bar-${{ steps.get_version.outputs.VERSION }}.dmg" \
+            "build/export" \
+          || {
+            # Fallback to basic hdiutil if create-dmg fails
+            echo "create-dmg failed, falling back to hdiutil..."
+            rm -f "build/Vercel-Menu-Bar-${{ steps.get_version.outputs.VERSION }}.dmg"
+            hdiutil create \
+              -volname "Vercel Menu Bar" \
+              -srcfolder build/export \
+              -ov \
+              -format UDZO \
+              "build/Vercel-Menu-Bar-${{ steps.get_version.outputs.VERSION }}.dmg"
+          }
       
       - name: Sign DMG
         run: |
