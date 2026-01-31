@@ -342,25 +342,23 @@ jobs:
           
           # Create/update the cask formula
           mkdir -p /tmp/homebrew-tap/Casks
-          cat > /tmp/homebrew-tap/Casks/vercel-menu.rb << CASK_EOF
-cask "vercel-menu" do
-  version "$VERSION"
-  sha256 "$SHA256"
-
-  url "https://github.com/ryanjmarcus/vercel-menu-bar/releases/download/v#{version}/Vercel-Menu-Bar-#{version}.dmg"
-  name "Vercel Menu Bar"
-  desc "Menu bar app for monitoring Vercel deployments"
-  homepage "https://github.com/ryanjmarcus/vercel-menu-bar"
-
-  depends_on macos: ">= :sonoma"
-
-  app "Vercel Menu Bar.app"
-
-  zap trash: [
-    "~/Library/Preferences/com.ryanmarcus.vercel-menu-bar.plist",
-  ]
-end
-CASK_EOF
+          cat > /tmp/homebrew-tap/Casks/vercel-menu.rb << 'CASK_EOF'
+          cask "vercel-menu" do
+            version "VERSION_PLACEHOLDER"
+            sha256 "SHA256_PLACEHOLDER"
+            url "https://github.com/ryanjmarcus/vercel-menu-bar/releases/download/v#{version}/Vercel-Menu-Bar-#{version}.dmg"
+            name "Vercel Menu Bar"
+            desc "Menu bar app for monitoring Vercel deployments"
+            homepage "https://github.com/ryanjmarcus/vercel-menu-bar"
+            depends_on macos: ">= :sonoma"
+            app "Vercel Menu Bar.app"
+            zap trash: ["~/Library/Preferences/com.ryanmarcus.vercel-menu-bar.plist"]
+          end
+          CASK_EOF
+          
+          # Replace placeholders
+          sed -i '' "s/VERSION_PLACEHOLDER/$VERSION/" /tmp/homebrew-tap/Casks/vercel-menu.rb
+          sed -i '' "s/SHA256_PLACEHOLDER/$SHA256/" /tmp/homebrew-tap/Casks/vercel-menu.rb
           
           # Commit and push
           cd /tmp/homebrew-tap
