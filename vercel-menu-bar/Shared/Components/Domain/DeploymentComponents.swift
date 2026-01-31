@@ -44,15 +44,21 @@ struct DeploymentRow: View {
                         
                         if deployment.isCurrent {
                             CurrentPillSmall()
-                        } else if deployment.environment == .production && deployment.isPromoted {
-                            // Show promoted icon for non-current production deployments that were promoted
+                                .padding(.leading, 1)
+                        } else if deployment.environment == .production {
+                            // Show production icon for all production deployments (including building)
                             Image(systemName: "arrow.up.circle")
                                 .font(.system(size: 10))
+                                .foregroundColor(.vercelSecondaryText)
+                        } else if deployment.environment == .preview {
+                            // Show preview icon for all preview deployments (including building)
+                            Image(systemName: "eye")
+                                .font(.system(size: 9))
                                 .foregroundColor(.vercelSecondaryText)
                         }
                     }
                 }
-                .frame(width: 115, alignment: .leading)
+                .frame(width: 130, alignment: .leading)
                 
                 // Column 2: Status + Duration
                 VStack(alignment: .leading, spacing: 3) {
@@ -73,7 +79,7 @@ struct DeploymentRow: View {
                         .padding(.leading, 14)
                     }
                 }
-                .frame(width: 95, alignment: .leading)
+                .frame(width: 90, alignment: .leading)
                 
                 // Column 3: Git Branch + Commit
                 VStack(alignment: .leading, spacing: 3) {
@@ -94,7 +100,7 @@ struct DeploymentRow: View {
                             .lineLimit(1)
                     }
                 }
-                .frame(width: 110, alignment: .leading)
+                .frame(width: 100, alignment: .leading)
                 
                 Spacer()
                 
@@ -242,7 +248,7 @@ struct DeploymentCard: View {
                 .font(.vercelCaption)
                 .foregroundColor(.vercelSecondaryText)
             
-            HStack(spacing: 6) {
+            HStack(spacing: 5) {
                 if deployment.environment == .preview {
                     Image(systemName: "eye")
                         .font(.system(size: 11))
@@ -271,7 +277,7 @@ struct DeploymentCard: View {
                 
                 if deployment.isCurrent {
                     CurrentPill()
-                        .padding(.leading, 4)
+                        .padding(.leading, 3)
                 }
             }
         }
@@ -355,26 +361,7 @@ private struct DetailField<Content: View>: View {
 private struct CurrentPill: View {
     var body: some View {
         Text("Current")
-            .font(.vercelCaption)
-            .foregroundColor(Color(hex: "3291ff"))
-            .padding(.horizontal, 6)
-            .padding(.vertical, 2)
-            .background(Color(hex: "0070f3").opacity(0.1))
-            .cornerRadius(12)
-            .overlay(
-                RoundedRectangle(cornerRadius: 12)
-                    .stroke(Color(hex: "0070f3").opacity(0.15), lineWidth: 1)
-            )
-    }
-}
-
-// MARK: - Current Pill Small
-
-/// A smaller version of CurrentPill for deployment rows
-private struct CurrentPillSmall: View {
-    var body: some View {
-        Text("Current")
-            .font(.system(size: 9, weight: .medium))
+            .font(.system(size: 10, weight: .medium))
             .foregroundColor(Color(hex: "3291ff"))
             .padding(.horizontal, 5)
             .padding(.vertical, 1.5)
@@ -384,5 +371,28 @@ private struct CurrentPillSmall: View {
                 RoundedRectangle(cornerRadius: 10)
                     .stroke(Color(hex: "0070f3").opacity(0.15), lineWidth: 1)
             )
+    }
+}
+
+// MARK: - Current Pill Small
+
+/// A smaller version of CurrentPill for deployment rows with production icon
+private struct CurrentPillSmall: View {
+    var body: some View {
+        HStack(spacing: 2) {
+            Image(systemName: "arrow.up.circle")
+                .font(.system(size: 8))
+            Text("Current")
+                .font(.system(size: 8, weight: .medium))
+        }
+        .foregroundColor(Color(hex: "3291ff"))
+        .padding(.horizontal, 4)
+        .padding(.vertical, 1)
+        .background(Color(hex: "0070f3").opacity(0.1))
+        .cornerRadius(8)
+        .overlay(
+            RoundedRectangle(cornerRadius: 8)
+                .stroke(Color(hex: "0070f3").opacity(0.15), lineWidth: 1)
+        )
     }
 }
