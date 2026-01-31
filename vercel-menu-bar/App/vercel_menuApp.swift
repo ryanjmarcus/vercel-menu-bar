@@ -54,7 +54,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     // Sparkle updater controller for automatic updates
     private var updaterController: SPUStandardUpdaterController!
     
-    func applicationDidFinishLaunching(_ notification: Notification) {
+    @MainActor func applicationDidFinishLaunching(_ notification: Notification) {
         // Initialize Sparkle updater for automatic updates
         updaterController = SPUStandardUpdaterController(
             startingUpdater: true,
@@ -103,7 +103,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
     
-    private func setupStatusItem() {
+    @MainActor private func setupStatusItem() {
         let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
         statusItem = item
         
@@ -141,21 +141,27 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         api.$deployments
             .receive(on: DispatchQueue.main)
             .sink { [weak self] _ in
-                self?.updateStatusItemImage()
+                Task { @MainActor in
+                    self?.updateStatusItemImage()
+                }
             }
             .store(in: &cancellables)
         
         settings.$apiKey
             .receive(on: DispatchQueue.main)
             .sink { [weak self] _ in
-                self?.updateStatusItemImage()
+                Task { @MainActor in
+                    self?.updateStatusItemImage()
+                }
             }
             .store(in: &cancellables)
         
         settings.$selectedProjectId
             .receive(on: DispatchQueue.main)
             .sink { [weak self] _ in
-                self?.updateStatusItemImage()
+                Task { @MainActor in
+                    self?.updateStatusItemImage()
+                }
             }
             .store(in: &cancellables)
     }
