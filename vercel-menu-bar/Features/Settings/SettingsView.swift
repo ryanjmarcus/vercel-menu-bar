@@ -22,7 +22,7 @@ struct SettingsView: View {
     let onSave: () -> Void
     var focusTokenInput: Bool = false
     
-    private let refreshIntervalOptions = [10, 15, 30, 60]
+    private let refreshIntervalOptions = [5, 10, 15, 30]
     
     var body: some View {
         VStack(spacing: 0) {
@@ -39,6 +39,9 @@ struct SettingsView: View {
                     
                     // Refresh Section
                     refreshSection
+                    
+                    // General Section
+                    generalSection
                     
                     // Footer
                     aboutFooter
@@ -114,6 +117,45 @@ struct SettingsView: View {
                     onSave()
                 }
             )
+        }
+    }
+    
+    // MARK: - General Section
+    
+    private var generalSection: some View {
+        SettingsSection(title: "General", subtitle: "App behavior settings") {
+            VStack(alignment: .leading, spacing: 12) {
+                // Launch at Login
+                HStack {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Launch at login")
+                            .font(.vercelBody)
+                            .foregroundColor(.vercelPrimaryText)
+                        Text("Start automatically when you log in")
+                            .font(.vercelCaption)
+                            .foregroundColor(.vercelSecondaryText)
+                    }
+                    
+                    Spacer()
+                    
+                    Toggle("", isOn: Binding(
+                        get: { settings.launchAtLogin },
+                        set: { settings.launchAtLogin = $0 }
+                    ))
+                    .toggleStyle(.switch)
+                    .labelsHidden()
+                    .pointerOnHover()
+                }
+                
+                // Window Size
+                SettingRow(title: "Window size", description: "Height of the popover") {
+                    WindowSizeSelector(
+                        selectedSize: settings.windowSize,
+                        onSelect: { settings.windowSize = $0 }
+                    )
+                }
+            }
+            .padding(12)
         }
     }
     

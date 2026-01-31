@@ -7,6 +7,31 @@
 //
 import Foundation
 import Combine
+import ServiceManagement
+
+// MARK: - Window Size
+
+enum WindowSize: String, CaseIterable {
+    case compact = "compact"
+    case `default` = "default"
+    case tall = "tall"
+    
+    var height: CGFloat {
+        switch self {
+        case .compact: return 450
+        case .default: return 556
+        case .tall: return 700
+        }
+    }
+    
+    var displayName: String {
+        switch self {
+        case .compact: return "Compact"
+        case .default: return "Default"
+        case .tall: return "Tall"
+        }
+    }
+}
 
 // MARK: - Settings Storage
 
@@ -14,21 +39,23 @@ class SettingsManager: ObservableObject {
     static let shared = SettingsManager()
     
     private let apiKeyKey = "vercel_api_key"
+    private let hasSavedTokenKey = "has_saved_token_before"
     private let projectIdKey = "vercel_project_id"
     private let projectNameKey = "vercel_project_name"
     private let projectFaviconKey = "vercel_project_favicon"
     private let refreshIntervalKey = "refresh_interval_seconds"
     private let fastRefreshEnabledKey = "refresh_fast_enabled"
     private let fastRefreshIntervalKey = "refresh_fast_interval_seconds"
+    private let windowSizeKey = "window_size"
     
     @Published var apiKey: String {
         didSet {
             if apiKey.isEmpty {
                 KeychainManager.shared.delete(forKey: apiKeyKey)
-                // Also remove from UserDefaults for migration cleanup
-                UserDefaults.standard.removeObject(forKey: apiKeyKey)
+                UserDefaults.standard.set(false, forKey: hasSavedTokenKey)
             } else {
                 _ = KeychainManager.shared.save(apiKey, forKey: apiKeyKey)
+                UserDefaults.standard.set(true, forKey: hasSavedTokenKey)
             }
         }
     }
@@ -69,16 +96,22 @@ class SettingsManager: ObservableObject {
         }
     }
     
+    @Published var windowSize: WindowSize {
+        didSet {
+            UserDefaults.standard.set(windowSize.rawValue, forKey: windowSizeKey)
+        }
+    }
+    
     init() {
-        // Try to load API key from Keychain first, fallback to UserDefaults for migration
-        if let keychainKey = KeychainManager.shared.get(forKey: apiKeyKey) {
-            self.apiKey = keychainKey
-        } else if let userDefaultsKey = UserDefaults.standard.string(forKey: apiKeyKey), !userDefaultsKey.isEmpty {
-            // Migrate from UserDefaults to Keychain
-            self.apiKey = userDefaultsKey
-            _ = KeychainManager.shared.save(userDefaultsKey, forKey: apiKeyKey)
-            UserDefaults.standard.removeObject(forKey: apiKeyKey)
+        // Only try to load from keychain if we've saved a token before
+        // This prevents keychain access prompt on first launch
+        let hasSavedBefore = UserDefaults.standard.bool(forKey: hasSavedTokenKey)
+        
+        if hasSavedBefore {
+            // Load API key from keychain (user has already granted access)
+            self.apiKey = KeychainManager.shared.get(forKey: apiKeyKey) ?? ""
         } else {
+            // First launch - don't touch keychain at all
             self.apiKey = ""
         }
         
@@ -87,7 +120,7 @@ class SettingsManager: ObservableObject {
         self.selectedProjectFaviconURL = UserDefaults.standard.string(forKey: projectFaviconKey) ?? ""
 
         let storedRefreshInterval = UserDefaults.standard.integer(forKey: refreshIntervalKey)
-        self.refreshIntervalSeconds = storedRefreshInterval > 0 ? storedRefreshInterval : 15
+        self.refreshIntervalSeconds = storedRefreshInterval > 0 ? storedRefreshInterval : 10
 
         if UserDefaults.standard.object(forKey: fastRefreshEnabledKey) == nil {
             self.fastRefreshEnabled = true
@@ -97,6 +130,13 @@ class SettingsManager: ObservableObject {
 
         let storedFastInterval = UserDefaults.standard.integer(forKey: fastRefreshIntervalKey)
         self.fastRefreshIntervalSeconds = storedFastInterval > 0 ? storedFastInterval : 5
+        
+        if let storedWindowSize = UserDefaults.standard.string(forKey: windowSizeKey),
+           let size = WindowSize(rawValue: storedWindowSize) {
+            self.windowSize = size
+        } else {
+            self.windowSize = .default
+        }
     }
     
     var hasApiKey: Bool {
@@ -116,5 +156,25 @@ class SettingsManager: ObservableObject {
         selectedProjectId = project.id
         selectedProjectName = project.name
         selectedProjectFaviconURL = project.faviconURL?.absoluteString ?? ""
+    }
+    
+    // MARK: - Launch at Login
+    
+    var launchAtLogin: Bool {
+        get {
+            SMAppService.mainApp.status == .enabled
+        }
+        set {
+            objectWillChange.send()
+            do {
+                if newValue {
+                    try SMAppService.mainApp.register()
+                } else {
+                    try SMAppService.mainApp.unregister()
+                }
+            } catch {
+                print("Failed to \(newValue ? "enable" : "disable") launch at login: \(error)")
+            }
+        }
     }
 }

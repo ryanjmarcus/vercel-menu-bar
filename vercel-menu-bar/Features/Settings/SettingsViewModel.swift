@@ -27,7 +27,7 @@ final class SettingsViewModel {
     
     // MARK: - Constants
     
-    let refreshIntervalOptions = [10, 15, 30, 60]
+    let refreshIntervalOptions = [5, 10, 15, 30]
     
     // MARK: - Computed Properties
     

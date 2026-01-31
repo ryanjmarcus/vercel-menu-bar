@@ -121,6 +121,7 @@ jobs:
             -scheme vercel-menu-bar \
             -configuration Release \
             -archivePath build/VercelMenuBar.xcarchive \
+            MARKETING_VERSION="${{ steps.get_version.outputs.VERSION }}" \
             CODE_SIGN_IDENTITY="$SIGNING_IDENTITY" \
             CODE_SIGNING_REQUIRED="$CODE_SIGNING_REQUIRED" \
             CODE_SIGNING_ALLOWED=YES

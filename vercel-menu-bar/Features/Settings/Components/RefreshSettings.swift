@@ -16,7 +16,7 @@ struct ActiveIntervalSelector: View {
     let onSave: () -> Void
     
     private let options: [(label: String, seconds: Int?)] = [
-        ("Off", nil),
+        ("Same", nil),
         ("3s", 3),
         ("5s", 5),
         ("10s", 10)

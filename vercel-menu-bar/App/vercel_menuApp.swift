@@ -21,27 +21,6 @@ struct vercel_menuApp: App {
     }
 }
 
-// MARK: - Status Bar Button View
-
-class StatusBarButtonView: NSView {
-    var rightClickMenu: NSMenu?
-    
-    override func mouseDown(with event: NSEvent) {
-        // Forward left-clicks to the button behind us
-        if let button = superview as? NSButton {
-            button.mouseDown(with: event)
-        }
-    }
-    
-    override func rightMouseDown(with event: NSEvent) {
-        if let menu = rightClickMenu {
-            menu.popUp(positioning: nil, at: NSPoint(x: bounds.minX, y: bounds.maxY), in: nil)
-        } else {
-            super.rightMouseDown(with: event)
-        }
-    }
-}
-
 // MARK: - App Delegate for Edit Menu Support
 
 class AppDelegate: NSObject, NSApplicationDelegate {
@@ -50,6 +29,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private var statusItem: NSStatusItem?
     private let popover = NSPopover()
     private var cancellables = Set<AnyCancellable>()
+    private var rightClickMenu: NSMenu!
     
     // Sparkle updater controller for automatic updates
     private var updaterController: SPUStandardUpdaterController!
@@ -110,31 +90,44 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         guard let button = item.button else { return }
         
         button.target = self
-        button.action = #selector(togglePopover(_:))
-        button.sendAction(on: .leftMouseDown)
+        button.action = #selector(statusItemClicked(_:))
+        button.sendAction(on: [.leftMouseDown, .rightMouseDown])
         
-        // Create custom view for right-click menu support
-        let customView = StatusBarButtonView()
-        customView.frame = button.bounds
-        customView.autoresizingMask = [.width, .height]
-        
-        // Add right-click menu with Quit option
-        let menu = NSMenu()
-        let quitItem = NSMenuItem(title: "Quit", action: #selector(quitApp(_:)), keyEquivalent: "q")
+        // Create right-click menu
+        rightClickMenu = NSMenu()
+        let quitItem = NSMenuItem(title: "Quit Vercel Menu Bar", action: #selector(quitApp(_:)), keyEquivalent: "q")
         quitItem.target = self
-        menu.addItem(quitItem)
-        customView.rightClickMenu = menu
-        
-        // Add custom view as subview to handle right-clicks
-        // Make it non-interactive for left-clicks so they pass through to button
-        customView.wantsLayer = false
-        button.addSubview(customView)
+        rightClickMenu.addItem(quitItem)
         
         popover.behavior = .transient
-        popover.contentSize = NSSize(width: 380, height: 556)
+        popover.contentSize = NSSize(width: 380, height: settings.windowSize.height)
         popover.contentViewController = NSHostingController(rootView: MenuBarView())
         
         updateStatusItemImage()
+        observeWindowSizeChanges()
+    }
+    
+    private func observeWindowSizeChanges() {
+        settings.$windowSize
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] newSize in
+                self?.popover.contentSize = NSSize(width: 380, height: newSize.height)
+            }
+            .store(in: &cancellables)
+    }
+    
+    @objc private func statusItemClicked(_ sender: Any?) {
+        guard let event = NSApp.currentEvent else { return }
+        
+        if event.type == .rightMouseDown {
+            // Show right-click menu
+            if let button = statusItem?.button {
+                rightClickMenu.popUp(positioning: nil, at: NSPoint(x: 0, y: button.bounds.height + 5), in: button)
+            }
+        } else {
+            // Left-click - toggle popover
+            togglePopover(sender)
+        }
     }
     
     private func observeStatusUpdates() {
