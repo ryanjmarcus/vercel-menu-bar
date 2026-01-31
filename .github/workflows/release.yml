@@ -89,6 +89,7 @@ jobs:
       - name: Build and Sign App
         env:
           SIGNING_IDENTITY: ${{ secrets.DEVELOPER_ID_CERTIFICATE_BASE64 != '' && 'Developer ID Application: Ryan Marcus (JM7ZEPER79)' || '-' }}
+          CODE_SIGNING_REQUIRED: ${{ secrets.DEVELOPER_ID_CERTIFICATE_BASE64 != '' && 'YES' || 'NO' }}
         run: |
           # Build the archive
           xcodebuild archive \
@@ -97,7 +98,7 @@ jobs:
             -configuration Release \
             -archivePath build/VercelMenuBar.xcarchive \
             CODE_SIGN_IDENTITY="$SIGNING_IDENTITY" \
-            CODE_SIGNING_REQUIRED=${{ secrets.DEVELOPER_ID_CERTIFICATE_BASE64 != '' && 'YES' || 'NO' }} \
+            CODE_SIGNING_REQUIRED="$CODE_SIGNING_REQUIRED" \
             CODE_SIGNING_ALLOWED=YES
           
           # Export the app
