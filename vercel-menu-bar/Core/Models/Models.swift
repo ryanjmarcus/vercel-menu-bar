@@ -205,7 +205,7 @@ extension Deployment {
             githubRepo: "my-app",
             environment: .production,
             isCurrent: false,
-            isPromoted: false
+            isPromoted: true
         ),
         Deployment(
             id: "dpl_ghi789",
