@@ -253,23 +253,23 @@ jobs:
           VERSION="${{ steps.get_version.outputs.VERSION }}"
           DATE=$(date -u +"%a, %d %b %Y %H:%M:%S %z")
           
-          # Create the new item entry
-          NEW_ITEM="    <item>
-              <title>Version $VERSION</title>
-              <pubDate>$DATE</pubDate>
-              <sparkle:version>$VERSION</sparkle:version>
-              <sparkle:shortVersionString>$VERSION</sparkle:shortVersionString>
-              <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
-              <enclosure
-                  url=\"https://github.com/ryanjmarcus/vercel-menu-bar/releases/download/v$VERSION/Vercel-Menu-Bar-$VERSION.zip\"
-                  sparkle:edSignature=\"$ED_SIGNATURE\"
-                  length=\"$LENGTH\"
-                  type=\"application/octet-stream\"/>
-              <sparkle:releaseNotesLink>https://github.com/ryanjmarcus/vercel-menu-bar/releases/tag/v$VERSION</sparkle:releaseNotesLink>
-          </item>"
-          
-          # Insert the new item after the comment
-          sed -i '' "s|<!-- Updates will be automatically added here by GitHub Actions -->|<!-- Updates will be automatically added here by GitHub Actions -->\n$NEW_ITEM|" docs/appcast.xml
+          # Use perl for multi-line insertion (sed on macOS can't handle newlines in replacement)
+          perl -i -pe "
+            s{<!-- Updates will be automatically added here by GitHub Actions -->}{<!-- Updates will be automatically added here by GitHub Actions -->
+        <item>
+            <title>Version $VERSION</title>
+            <pubDate>$DATE</pubDate>
+            <sparkle:version>$VERSION</sparkle:version>
+            <sparkle:shortVersionString>$VERSION</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+            <enclosure
+                url=\"https://github.com/ryanjmarcus/vercel-menu-bar/releases/download/v$VERSION/Vercel-Menu-Bar-$VERSION.zip\"
+                sparkle:edSignature=\"$ED_SIGNATURE\"
+                length=\"$LENGTH\"
+                type=\"application/octet-stream\"/>
+            <sparkle:releaseNotesLink>https://github.com/ryanjmarcus/vercel-menu-bar/releases/tag/v$VERSION</sparkle:releaseNotesLink>
+        </item>}
+          " docs/appcast.xml
       
       - name: Commit appcast.xml update
         run: |
