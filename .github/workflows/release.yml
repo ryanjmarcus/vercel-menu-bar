@@ -4,6 +4,12 @@ on:
   push:
     tags:
       - 'v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to release (e.g. 1.0.0)'
+        required: true
+        type: string
 
 jobs:
   build:
@@ -20,9 +26,14 @@ jobs:
         with:
           xcode-version: latest-stable
       
-      - name: Get version from tag
+      - name: Get version from tag or input
         id: get_version
-        run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+        run: |
+          if [ -n "${{ github.event.inputs.version }}" ]; then
+            echo "VERSION=${{ github.event.inputs.version }}" >> $GITHUB_OUTPUT
+          else
+            echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+          fi
       
       - name: Import Code Signing Certificate
         if: ${{ secrets.DEVELOPER_ID_CERTIFICATE_BASE64 != '' }}
