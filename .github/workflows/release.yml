@@ -276,17 +276,27 @@ jobs:
           awk '/<!-- Updates will be automatically added here by GitHub Actions -->/{print; system("cat /tmp/new_item.xml"); next}1' docs/appcast.xml > /tmp/appcast_new.xml
           mv /tmp/appcast_new.xml docs/appcast.xml
       
-      - name: Commit appcast.xml update
+      - name: Update README download link
         run: |
-          if [ -z "$ED_SIGNATURE" ]; then
-            echo "No Sparkle signature, skipping commit..."
+          VERSION="${{ steps.get_version.outputs.VERSION }}"
+          DMG_URL="https://github.com/ryanjmarcus/vercel-menu-bar/releases/download/v${VERSION}/Vercel-Menu-Bar-${VERSION}.dmg"
+          
+          # Update the direct download URL and filename in README
+          sed -i '' -E "s|https://github.com/ryanjmarcus/vercel-menu-bar/releases/download/v[0-9A-Za-z._-]+/Vercel-Menu-Bar-[0-9A-Za-z._-]+\\.dmg|${DMG_URL}|g" README.md
+          sed -i '' -E "s|Vercel-Menu-Bar-[0-9A-Za-z._-]+\\.dmg|Vercel-Menu-Bar-${VERSION}.dmg|g" README.md
+      
+      - name: Commit release metadata updates
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add docs/appcast.xml README.md
+          
+          if git diff --cached --quiet; then
+            echo "No changes to commit"
             exit 0
           fi
           
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add docs/appcast.xml
-          git commit -m "Update appcast.xml for v${{ steps.get_version.outputs.VERSION }}" || echo "No changes to commit"
+          git commit -m "Update release metadata for v${{ steps.get_version.outputs.VERSION }}"
           git push origin HEAD:main || echo "Could not push to main"
       
       - name: Calculate SHA256 for Homebrew

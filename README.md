@@ -36,8 +36,10 @@ brew install ryanjmarcus/tap/vercel-menu-bar
 ### Download Directly
 
 Download the latest release from the [Releases page](https://github.com/ryanjmarcus/vercel-menu-bar/releases/latest).
+Direct download (always updated on release):
+`https://github.com/ryanjmarcus/vercel-menu-bar/releases/download/vX.Y.Z/Vercel-Menu-Bar-X.Y.Z.dmg`
 
-1. Download `Vercel-Menu-Bar-x.x.x.dmg`
+1. Download `Vercel-Menu-Bar-X.Y.Z.dmg`
 2. Open the DMG and drag the app to your Applications folder
 3. Launch the app from Applications
 
