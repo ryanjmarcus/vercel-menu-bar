@@ -20,6 +20,8 @@ A native macOS menu bar app for monitoring your Vercel deployments.
 
 ![Vercel Menu Bar Screenshot](docs/screenshot.png)
 
+![Vercel Menu Bar Demo](docs/demo.gif)
+
 ## Requirements
 
 - macOS 14.0 (Sonoma) or later
