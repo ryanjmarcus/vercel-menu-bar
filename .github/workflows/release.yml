@@ -183,21 +183,20 @@ jobs:
       
       - name: Create DMG
         run: |
-          # Add Applications symlink
+          # Add Applications symlink for drag-to-install
           ln -s /Applications "build/export/Applications"
           
-          # Install create-dmg for prettier DMG with background
+          # Install create-dmg for icon positioning
           brew install create-dmg || true
           
-          # Create DMG with background and icon positioning
+          # Create DMG with icon positioning (no background)
           create-dmg \
             --volname "Vercel Menu Bar" \
-            --background "vercel-menu-bar/Resources/dmg-background.png" \
             --window-pos 200 120 \
-            --window-size 660 400 \
+            --window-size 540 380 \
             --icon-size 128 \
-            --icon "Vercel Menu Bar.app" 180 200 \
-            --icon "Applications" 480 200 \
+            --icon "Vercel Menu Bar.app" 140 180 \
+            --icon "Applications" 400 180 \
             --hide-extension "Vercel Menu Bar.app" \
             --no-internet-enable \
             "build/Vercel-Menu-Bar-${{ steps.get_version.outputs.VERSION }}.dmg" \
