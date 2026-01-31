@@ -253,23 +253,24 @@ jobs:
           VERSION="${{ steps.get_version.outputs.VERSION }}"
           DATE=$(date -u +"%a, %d %b %Y %H:%M:%S %z")
           
-          # Use perl for multi-line insertion (sed on macOS can't handle newlines in replacement)
-          perl -i -pe "
-            s{<!-- Updates will be automatically added here by GitHub Actions -->}{<!-- Updates will be automatically added here by GitHub Actions -->
-        <item>
-            <title>Version $VERSION</title>
-            <pubDate>$DATE</pubDate>
-            <sparkle:version>$VERSION</sparkle:version>
-            <sparkle:shortVersionString>$VERSION</sparkle:shortVersionString>
-            <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
-            <enclosure
-                url=\"https://github.com/ryanjmarcus/vercel-menu-bar/releases/download/v$VERSION/Vercel-Menu-Bar-$VERSION.zip\"
-                sparkle:edSignature=\"$ED_SIGNATURE\"
-                length=\"$LENGTH\"
-                type=\"application/octet-stream\"/>
-            <sparkle:releaseNotesLink>https://github.com/ryanjmarcus/vercel-menu-bar/releases/tag/v$VERSION</sparkle:releaseNotesLink>
-        </item>}
-          " docs/appcast.xml
+          # Create appcast item using printf (avoids heredoc YAML issues)
+          printf '        <item>\n' > /tmp/new_item.xml
+          printf '            <title>Version %s</title>\n' "$VERSION" >> /tmp/new_item.xml
+          printf '            <pubDate>%s</pubDate>\n' "$DATE" >> /tmp/new_item.xml
+          printf '            <sparkle:version>%s</sparkle:version>\n' "$VERSION" >> /tmp/new_item.xml
+          printf '            <sparkle:shortVersionString>%s</sparkle:shortVersionString>\n' "$VERSION" >> /tmp/new_item.xml
+          printf '            <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>\n' >> /tmp/new_item.xml
+          printf '            <enclosure\n' >> /tmp/new_item.xml
+          printf '                url="https://github.com/ryanjmarcus/vercel-menu-bar/releases/download/v%s/Vercel-Menu-Bar-%s.zip"\n' "$VERSION" "$VERSION" >> /tmp/new_item.xml
+          printf '                sparkle:edSignature="%s"\n' "$ED_SIGNATURE" >> /tmp/new_item.xml
+          printf '                length="%s"\n' "$LENGTH" >> /tmp/new_item.xml
+          printf '                type="application/octet-stream"/>\n' >> /tmp/new_item.xml
+          printf '            <sparkle:releaseNotesLink>https://github.com/ryanjmarcus/vercel-menu-bar/releases/tag/v%s</sparkle:releaseNotesLink>\n' "$VERSION" >> /tmp/new_item.xml
+          printf '        </item>\n' >> /tmp/new_item.xml
+          
+          # Use awk for multi-line insertion
+          awk '/<!-- Updates will be automatically added here by GitHub Actions -->/{print; system("cat /tmp/new_item.xml"); next}1' docs/appcast.xml > /tmp/appcast_new.xml
+          mv /tmp/appcast_new.xml docs/appcast.xml
       
       - name: Commit appcast.xml update
         run: |

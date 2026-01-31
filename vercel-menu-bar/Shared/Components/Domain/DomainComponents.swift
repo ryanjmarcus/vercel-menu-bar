@@ -165,10 +165,6 @@ struct DomainRow: View {
                 .padding(.vertical, 1)
                 .background(isHovered ? Color.vercelHover : Color.vercelBackground)
                 .cornerRadius(3)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 3)
-                        .stroke(Color.vercelBorder, lineWidth: 1)
-                )
         }
         .buttonStyle(.plain)
         .onHover { hovering in
@@ -197,10 +193,6 @@ private struct DomainPill: View {
                 .padding(.vertical, 1)
                 .background(Color.vercelBackground)
                 .cornerRadius(3)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 3)
-                        .stroke(Color.vercelBorder, lineWidth: 1)
-                )
         }
         .buttonStyle(.plain)
     }
