@@ -74,14 +74,10 @@ struct SettingsView: View {
                     NSWorkspace.shared.open(url)
                 }
             }) {
-                HStack(spacing: 2) {
-                    Text("GitHub")
-                        .font(.system(size: 11))
-                        .underline(isGitHubHovered)
-                    Image(systemName: "arrow.up.right.square")
-                        .font(.system(size: 9))
-                }
-                .foregroundColor(isGitHubHovered ? .vercelSecondaryText : .vercelSecondaryText.opacity(0.5))
+                Text("GitHub")
+                    .font(.system(size: 11))
+                    .underline(isGitHubHovered)
+                    .foregroundColor(isGitHubHovered ? .vercelSecondaryTextHover : .vercelSecondaryText.opacity(0.5))
             }
             .buttonStyle(.plain)
             .onHover { hovering in
@@ -112,7 +108,7 @@ struct SettingsView: View {
                         .font(.system(size: 11))
                         .underline(isUpdateHovered)
                 }
-                .foregroundColor(isUpdateHovered ? .vercelSecondaryText : .vercelSecondaryText.opacity(0.5))
+                .foregroundColor(isUpdateHovered ? .vercelSecondaryTextHover : .vercelSecondaryText.opacity(0.5))
             }
             .buttonStyle(.plain)
             .onHover { hovering in
