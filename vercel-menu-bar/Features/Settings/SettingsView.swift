@@ -11,12 +11,14 @@ import AppKit
 struct SettingsView: View {
     @ObservedObject var settings = SettingsManager.shared
     @ObservedObject var api = VercelAPI.shared
+    @ObservedObject var updaterManager = UpdaterManager.shared
     @State private var apiKeyInput: String = ""
     @State private var isKeyVisible: Bool = false
     @State private var isValidating: Bool = false
     @State private var isProjectDropdownExpanded: Bool = false
     @State private var hasAppliedInitialFocus: Bool = false
     @State private var isGitHubHovered: Bool = false
+    @State private var isUpdateHovered: Bool = false
     
     let onBack: () -> Void
     let onSave: () -> Void
@@ -92,9 +94,35 @@ struct SettingsView: View {
                 }
             }
             
-            Text("  ·  v\(version)")
+            Text("  ·  v\(version)  ·  ")
                 .font(.system(size: 11))
                 .foregroundColor(.vercelSecondaryText.opacity(0.5))
+            
+            Button(action: {
+                updaterManager.checkForUpdates()
+            }) {
+                HStack(spacing: 4) {
+                    if updaterManager.updateAvailable {
+                        Circle()
+                            .fill(Color.green)
+                            .frame(width: 6, height: 6)
+                    }
+                    Text(updaterManager.updateAvailable ? "Update Available" : "Check for Updates")
+                        .font(.system(size: 11))
+                }
+                .foregroundColor(isUpdateHovered ? .vercelSecondaryTextHover : .vercelSecondaryText.opacity(0.5))
+            }
+            .buttonStyle(.plain)
+            .onHover { hovering in
+                withAnimation(.easeInOut(duration: 0.1)) {
+                    isUpdateHovered = hovering
+                }
+                if hovering {
+                    NSCursor.pointingHand.push()
+                } else {
+                    NSCursor.pop()
+                }
+            }
         }
         .frame(maxWidth: .infinity)
         .padding(.top, 2)

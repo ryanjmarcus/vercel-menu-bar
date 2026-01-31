@@ -8,7 +8,6 @@
 import SwiftUI
 import AppKit
 import Combine
-import Sparkle
 
 @main
 struct vercel_menuApp: App {
@@ -31,16 +30,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private var cancellables = Set<AnyCancellable>()
     private var rightClickMenu: NSMenu!
     
-    // Sparkle updater controller for automatic updates
-    private var updaterController: SPUStandardUpdaterController!
-    
     @MainActor func applicationDidFinishLaunching(_ notification: Notification) {
-        // Initialize Sparkle updater for automatic updates
-        updaterController = SPUStandardUpdaterController(
-            startingUpdater: true,
-            updaterDelegate: nil,
-            userDriverDelegate: nil
-        )
+        // Initialize the UpdaterManager singleton for automatic updates
+        _ = UpdaterManager.shared
         
         // Create Edit menu for keyboard shortcuts (Cmd+V, Cmd+C, etc.)
         setupEditMenu()
@@ -204,6 +196,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         } else {
             popover.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
             popover.contentViewController?.view.window?.makeKey()
+            
+            // Check for app updates when popover opens (with 1-hour cooldown)
+            UpdaterManager.shared.checkForUpdateIfNeeded()
         }
     }
 }
