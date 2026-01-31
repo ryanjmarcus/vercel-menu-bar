@@ -72,19 +72,13 @@ brew tap ryanjmarcus/tap
 A native macOS menu bar app for monitoring Vercel deployments.
 
 ```bash
-brew install ryanjmarcus/tap/vercel-menu-bar
-```
-
-Or directly:
-
-```bash
-brew install --cask ryanjmarcus/tap/vercel-menu
+brew install --cask ryanjmarcus/tap/vercel-menu-bar
 ```
 EOF
 
 # Create initial cask placeholder
-cat > Casks/vercel-menu.rb << 'EOF'
-cask "vercel-menu" do
+cat > Casks/vercel-menu-bar.rb << 'EOF'
+cask "vercel-menu-bar" do
   version "1.0.0"
   sha256 :no_check
 
@@ -166,6 +160,6 @@ echo "  - Initial cask formula added"
 echo "  - HOMEBREW_TAP_TOKEN secret configured"
 echo ""
 echo -e "${CYAN}Users can now install with:${NC}"
-echo -e "  ${GREEN}brew install ryanjmarcus/tap/vercel-menu-bar${NC}"
+echo -e "  ${GREEN}brew install --cask ryanjmarcus/tap/vercel-menu-bar${NC}"
 echo ""
 echo -e "${YELLOW}Note: The cask will be automatically updated on each release.${NC}"

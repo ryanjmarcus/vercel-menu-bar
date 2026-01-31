@@ -127,15 +127,31 @@ if command -v create-dmg &> /dev/null; then
     # Get version from Info.plist
     VERSION=$(defaults read "$(pwd)/$EXPORT_PATH/$DISPLAY_NAME.app/Contents/Info" CFBundleShortVersionString 2>/dev/null || echo "1.0.0")
     
-    create-dmg \
-        --volname "$DISPLAY_NAME" \
-        --volicon "vercel-menu-bar/Resources/Assets.xcassets/AppIcon.appiconset/icon_512x512.png" \
-        --window-pos 200 120 \
-        --window-size 600 400 \
-        --icon-size 100 \
-        --icon "$DISPLAY_NAME.app" 150 185 \
-        --hide-extension "$DISPLAY_NAME.app" \
-        --app-drop-link 450 185 \
+    # Generate DMG background if script exists and background doesn't
+    if [ -f "scripts/generate-dmg-background.swift" ] && [ ! -f "vercel-menu-bar/Resources/dmg-background.png" ]; then
+        echo -e "${YELLOW}Generating DMG background image...${NC}"
+        swift scripts/generate-dmg-background.swift || echo -e "${YELLOW}Background generation failed, continuing without...${NC}"
+    fi
+    
+    # Build create-dmg command with optional background
+    DMG_ARGS=(
+        --volname "$DISPLAY_NAME"
+        --volicon "vercel-menu-bar/Resources/Assets.xcassets/AppIcon.appiconset/icon_512x512.png"
+        --window-pos 200 120
+        --window-size 600 400
+        --icon-size 100
+        --icon "$DISPLAY_NAME.app" 150 185
+        --hide-extension "$DISPLAY_NAME.app"
+        --app-drop-link 450 185
+    )
+    
+    # Add background if available
+    if [ -f "vercel-menu-bar/Resources/dmg-background.png" ]; then
+        DMG_ARGS+=(--background "vercel-menu-bar/Resources/dmg-background.png")
+        echo -e "${GREEN}Using custom DMG background${NC}"
+    fi
+    
+    create-dmg "${DMG_ARGS[@]}" \
         "$BUILD_DIR/$DMG_NAME-$VERSION.dmg" \
         "$EXPORT_PATH/" \
         || echo -e "${YELLOW}Note: create-dmg failed, creating simple DMG instead...${NC}"

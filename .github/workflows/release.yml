@@ -280,10 +280,14 @@ jobs:
         run: |
           VERSION="${{ steps.get_version.outputs.VERSION }}"
           DMG_URL="https://github.com/ryanjmarcus/vercel-menu-bar/releases/download/v${VERSION}/Vercel-Menu-Bar-${VERSION}.dmg"
+          DMG_FILENAME="Vercel-Menu-Bar-${VERSION}.dmg"
           
-          # Update the direct download URL and filename in README
-          sed -i '' -E "s|https://github.com/ryanjmarcus/vercel-menu-bar/releases/download/v[0-9A-Za-z._-]+/Vercel-Menu-Bar-[0-9A-Za-z._-]+\\.dmg|${DMG_URL}|g" README.md
-          sed -i '' -E "s|Vercel-Menu-Bar-[0-9A-Za-z._-]+\\.dmg|Vercel-Menu-Bar-${VERSION}.dmg|g" README.md
+          # Update the direct download URL in README
+          # Note: Pattern matches both initial placeholder (X.Y.Z) and actual versions (1.0.3)
+          sed -i '' -E "s|https://github.com/ryanjmarcus/vercel-menu-bar/releases/download/v[0-9A-Za-zX.Y_-]+/Vercel-Menu-Bar-[0-9A-Za-zX.Y_-]+\\.dmg|${DMG_URL}|g" README.md
+          
+          # Update all DMG filename references
+          sed -i '' -E "s|Vercel-Menu-Bar-[0-9A-Za-zX.Y_-]+\\.dmg|${DMG_FILENAME}|g" README.md
       
       - name: Commit release metadata updates
         run: |
@@ -328,7 +332,7 @@ jobs:
             
             ### Using Homebrew
             ```bash
-            brew install ryanjmarcus/tap/vercel-menu-bar
+            brew install --cask vercel-menu-bar
             ```
             
             ## What's New

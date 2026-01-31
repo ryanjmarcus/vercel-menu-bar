@@ -30,14 +30,20 @@ A native macOS menu bar app for monitoring your Vercel deployments.
 ### Using Homebrew (Recommended)
 
 ```bash
-brew install ryanjmarcus/tap/vercel-menu-bar
+brew install --cask vercel-menu-bar
+```
+
+If you prefer the personal tap:
+
+```bash
+brew install --cask ryanjmarcus/tap/vercel-menu-bar
 ```
 
 ### Download Directly
 
 Download the latest release from the [Releases page](https://github.com/ryanjmarcus/vercel-menu-bar/releases/latest).
-Direct download (always updated on release):
-`https://github.com/ryanjmarcus/vercel-menu-bar/releases/download/v1.0.4/Vercel-Menu-Bar-1.0.4.dmg`
+
+**[Vercel-Menu-Bar-1.0.4.dmg](https://github.com/ryanjmarcus/vercel-menu-bar/releases/download/v1.0.4/Vercel-Menu-Bar-1.0.4.dmg)**
 
 1. Download `Vercel-Menu-Bar-1.0.4.dmg`
 2. Open the DMG and drag the app to your Applications folder
