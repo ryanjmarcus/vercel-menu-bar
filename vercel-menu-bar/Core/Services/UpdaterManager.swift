@@ -70,6 +70,10 @@ final class UpdaterManager: NSObject, ObservableObject, SPUUpdaterDelegate {
     
     // MARK: - SPUUpdaterDelegate
     
+    func feedURLString(for updater: SPUUpdater) -> String? {
+        return "https://ryanjmarcus.github.io/vercel-menu-bar/appcast.xml"
+    }
+    
     func updater(_ updater: SPUUpdater, didFindValidUpdate item: SUAppcastItem) {
         DispatchQueue.main.async {
             self.updateAvailable = true
