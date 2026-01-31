@@ -32,7 +32,7 @@ A native macOS menu bar app for monitoring your Vercel deployments.
 
 ### Download Directly
 
-**[Download Vercel-Menu-Bar-1.2.2.dmg](https://github.com/ryanjmarcus/vercel-menu-bar/releases/download/v1.2.2/Vercel-Menu-Bar-1.2.2.dmg)**
+**[Download Vercel-Menu-Bar-1.2.3.dmg](https://github.com/ryanjmarcus/vercel-menu-bar/releases/download/v1.2.3/Vercel-Menu-Bar-1.2.3.dmg)**
 
 1. Open the DMG and drag the app to Applications
 2. Launch from Applications
