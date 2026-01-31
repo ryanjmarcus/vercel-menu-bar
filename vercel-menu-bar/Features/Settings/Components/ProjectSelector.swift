@@ -1,11 +1,12 @@
 //
 //  ProjectSelector.swift
-//  vercel-menu
+//  Vercel Menu Bar
 //
-//  Created by Ryan Marcus on 1/29/26.
+//  Copyright (c) 2026 Ryan Marcus
+//  Licensed under the MIT License
 //
-
 import SwiftUI
+import AppKit
 
 // MARK: - Project Selector Content
 
@@ -19,19 +20,20 @@ struct ProjectSelectorContent: View {
     
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            if settings.hasApiKey && !isValidating {
-                if api.projects.isEmpty {
-                    LoadProjectsButton(apiKey: settings.apiKey, api: api)
-                        .padding(12)
-                } else {
-                    ProjectDropdown(
-                        settings: settings,
-                        projects: api.projects,
-                        isExpanded: $isExpanded,
-                        onSelect: onProjectSelect
-                    )
-                }
+            if settings.hasApiKey && !api.projects.isEmpty {
+                // Valid token with projects - show dropdown
+                ProjectDropdown(
+                    settings: settings,
+                    projects: api.projects,
+                    isExpanded: $isExpanded,
+                    onSelect: onProjectSelect
+                )
+            } else if settings.hasApiKey {
+                // Has API key - always show error message (never show "Add an API token")
+                // This prevents switching back to original state during validation
+                LockedPlaceholder(message: "Please add a valid token to select a project")
             } else {
+                // No API key
                 LockedPlaceholder(message: "Add an API token to select a project")
             }
         }
@@ -46,39 +48,6 @@ struct ProjectSelectorContent: View {
     }
 }
 
-// MARK: - Load Projects Button
-
-struct LoadProjectsButton: View {
-    let apiKey: String
-    @ObservedObject var api: VercelAPI
-    
-    var body: some View {
-        Button(action: {
-            Task {
-                await api.fetchProjects(apiKey: apiKey)
-            }
-        }) {
-            HStack {
-                Image(systemName: "arrow.clockwise")
-                    .font(.system(size: 12))
-                Text("Load Projects")
-                    .font(.vercelBody)
-            }
-            .foregroundColor(.vercelPrimaryText)
-            .frame(maxWidth: .infinity)
-            .padding(10)
-            .background(Color.vercelBackground)
-            .cornerRadius(4)
-            .overlay(
-                RoundedRectangle(cornerRadius: 4)
-                    .stroke(Color.vercelBorder, lineWidth: 1)
-            )
-        }
-        .buttonStyle(.plain)
-        .pointerOnHover()
-    }
-}
-
 // MARK: - Project Dropdown
 
 struct ProjectDropdown: View {
@@ -86,6 +55,8 @@ struct ProjectDropdown: View {
     let projects: [VercelProject]
     @Binding var isExpanded: Bool
     let onSelect: (VercelProject) -> Void
+    
+    @State private var isHovered = false
     
     private var selectedProject: VercelProject? {
         projects.first { $0.id == settings.selectedProjectId }
@@ -133,10 +104,20 @@ struct ProjectDropdown: View {
                 .padding(.horizontal, 12)
                 .padding(.vertical, 10)
                 .frame(maxWidth: .infinity)
+                .background(isHovered ? Color.vercelHover : Color.clear)
                 .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
-            .pointerOnHover()
+            .onHover { hovering in
+                withAnimation(.easeInOut(duration: 0.1)) {
+                    isHovered = hovering
+                }
+                if hovering {
+                    NSCursor.pointingHand.push()
+                } else {
+                    NSCursor.pop()
+                }
+            }
             
             // Expanded project list
             if isExpanded {

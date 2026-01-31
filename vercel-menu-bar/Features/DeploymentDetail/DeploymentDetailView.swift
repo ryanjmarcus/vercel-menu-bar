@@ -1,10 +1,10 @@
 //
 //  DeploymentDetailView.swift
-//  vercel-menu
+//  Vercel Menu Bar
 //
-//  Created by Ryan Marcus on 1/28/26.
+//  Copyright (c) 2026 Ryan Marcus
+//  Licensed under the MIT License
 //
-
 import SwiftUI
 import AppKit
 
@@ -51,7 +51,7 @@ struct DeploymentDetailView: View {
     var body: some View {
         VStack(spacing: 0) {
             // Header
-            NavigationHeader(onBack: onBack) {
+            NavigationHeader(onBack: onBack, title: "Details") {
                 ExternalLinkButton("Open in Vercel", urlString: deploymentURL)
             }
             
@@ -59,7 +59,7 @@ struct DeploymentDetailView: View {
                 VStack(spacing: 16) {
                     deploymentCard
                         .padding(.horizontal, 12)
-                        .padding(.top, 16)
+                        .padding(.top, 12)
                 }
                 .padding(.bottom, 16)
             }
@@ -315,5 +315,5 @@ private struct CurrentPill: View {
         deployment: Deployment.dummyDeployments[0],
         onBack: {}
     )
-    .frame(width: 380, height: 520)
+    .frame(width: 380, height: 556)
 }

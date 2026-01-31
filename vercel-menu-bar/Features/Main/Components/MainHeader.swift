@@ -1,10 +1,10 @@
 //
 //  MainHeader.swift
-//  vercel-menu
+//  Vercel Menu Bar
 //
-//  Created by Ryan Marcus on 1/29/26.
+//  Copyright (c) 2026 Ryan Marcus
+//  Licensed under the MIT License
 //
-
 import SwiftUI
 import AppKit
 
@@ -19,6 +19,10 @@ struct MainHeader: View {
     let refreshRotationAngle: Double
     let onRefresh: () -> Void
     let onSettings: () -> Void
+    let onClose: () -> Void
+    
+    @State private var isRefreshHovered = false
+    @State private var isSettingsHovered = false
     
     var body: some View {
         VStack(spacing: 0) {
@@ -32,18 +36,13 @@ struct MainHeader: View {
                             .font(.system(size: 13, weight: .regular))
                             .foregroundColor(.vercelPrimaryText)
                     } else {
-                        HStack(spacing: 4) {
-                            Image(systemName: "triangle")
-                                .font(.system(size: 14))
-                                .foregroundColor(.vercelPrimaryText)
-                            
-                            Text("/")
-                                .font(.vercelHeading)
-                                .foregroundColor(.vercelPrimaryText)
-                        }
+                        Image(systemName: "triangle.fill")
+                            .font(.system(size: 12, weight: .medium))
+                            .foregroundColor(.vercelPrimaryText)
+                            .frame(width: 16, height: 16)
                         
                         Text("Vercel")
-                            .font(.vercelHeading)
+                            .font(.system(size: 13, weight: .regular))
                             .foregroundColor(.vercelPrimaryText)
                     }
                 }
@@ -56,7 +55,7 @@ struct MainHeader: View {
                     Button(action: onRefresh) {
                         Image(systemName: isLoading ? "arrow.triangle.2.circlepath" : "arrow.clockwise")
                             .font(.system(size: 12, weight: .medium))
-                            .foregroundColor(.vercelSecondaryText)
+                            .foregroundColor(isRefreshHovered && !isLoading ? .vercelSecondaryTextHover : .vercelSecondaryText)
                             .rotationEffect(.degrees(refreshRotationAngle))
                             .animation(
                                 isLoading 
@@ -69,19 +68,37 @@ struct MainHeader: View {
                     }
                     .buttonStyle(.plain)
                     .disabled(isLoading)
-                    .pointerOnHover(disabled: isLoading)
+                    .onHover { hovering in
+                        withAnimation(.easeInOut(duration: 0.1)) {
+                            isRefreshHovered = hovering
+                        }
+                        if hovering && !isLoading {
+                            NSCursor.pointingHand.push()
+                        } else {
+                            NSCursor.pop()
+                        }
+                    }
                     
                     // Settings button
                     Button(action: onSettings) {
                         Image(systemName: "gearshape")
                             .font(.system(size: 12, weight: .medium))
-                            .foregroundColor(.vercelSecondaryText)
+                            .foregroundColor(isSettingsHovered ? .vercelSecondaryTextHover : .vercelSecondaryText)
                     }
                     .buttonStyle(.plain)
-                    .pointerOnHover()
+                    .onHover { hovering in
+                        withAnimation(.easeInOut(duration: 0.1)) {
+                            isSettingsHovered = hovering
+                        }
+                        if hovering {
+                            NSCursor.pointingHand.push()
+                        } else {
+                            NSCursor.pop()
+                        }
+                    }
                     
                     // Close button
-                    CloseButton()
+                    CloseButton(action: onClose)
                 }
             }
             .padding(.top, 2)

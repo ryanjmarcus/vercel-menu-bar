@@ -1,10 +1,10 @@
 //
 //  VercelAPI.swift
-//  vercel-menu
+//  Vercel Menu Bar
 //
-//  Created by Ryan Marcus on 1/28/26.
+//  Copyright (c) 2026 Ryan Marcus
+//  Licensed under the MIT License
 //
-
 import Foundation
 import Combine
 
@@ -60,17 +60,11 @@ class VercelAPI: ObservableObject {
                 return
             }
             
-            if httpResponse.statusCode == 401 {
+            if httpResponse.statusCode == 401 || httpResponse.statusCode == 403 {
+                // Parse the error response to get specific error type
+                let errorMessage = self.parseVercelError(from: data)
                 await MainActor.run {
-                    self.error = "Invalid API key"
-                    self.isLoadingProjects = false
-                }
-                return
-            }
-            
-            if httpResponse.statusCode == 403 {
-                await MainActor.run {
-                    self.error = "Access forbidden - check API key permissions"
+                    self.error = errorMessage
                     self.isLoadingProjects = false
                 }
                 return
@@ -94,15 +88,8 @@ class VercelAPI: ObservableObject {
                 self.isLoadingProjects = false
                 self.error = nil
             }
-        } catch let decodingError as DecodingError {
+        } catch is DecodingError {
             await MainActor.run {
-                // Log the decoding error for debugging
-                print("Decoding error: \(decodingError)")
-                if case .keyNotFound(let key, let context) = decodingError {
-                    print("Missing key: \(key.stringValue) at \(context.codingPath)")
-                } else if case .typeMismatch(let type, let context) = decodingError {
-                    print("Type mismatch: expected \(type) at \(context.codingPath)")
-                }
                 self.error = "Failed to decode projects response"
                 self.isLoadingProjects = false
             }
@@ -172,12 +159,8 @@ class VercelAPI: ObservableObject {
                 throw APIError.invalidResponse
             }
             
-            if httpResponse.statusCode == 401 {
-                throw APIError.unauthorized
-            }
-            
-            if httpResponse.statusCode == 403 {
-                throw APIError.forbidden
+            if httpResponse.statusCode == 401 || httpResponse.statusCode == 403 {
+                throw self.parseVercelAPIError(from: data)
             }
             
             guard httpResponse.statusCode == 200 else {
@@ -514,5 +497,47 @@ class VercelAPI: ObservableObject {
                 self.isLoadingMore = false
             }
         }
+    }
+    
+    // MARK: - Error Parsing
+    
+    /// Parse Vercel API error response and return a user-friendly error message
+    private func parseVercelError(from data: Data) -> String {
+        do {
+            let errorResponse = try JSONDecoder().decode(VercelErrorResponse.self, from: data)
+            if let error = errorResponse.error {
+                if error.invalidToken == true {
+                    return "Invalid API token"
+                }
+                if error.missingToken == true {
+                    return "API token is missing"
+                }
+                if let message = error.message, !message.isEmpty {
+                    return message
+                }
+            }
+        } catch {
+            // Failed to parse error response
+        }
+        return "Check your API token"
+    }
+    
+    /// Parse Vercel API error response and return an APIError
+    private func parseVercelAPIError(from data: Data) -> APIError {
+        do {
+            let errorResponse = try JSONDecoder().decode(VercelErrorResponse.self, from: data)
+            if let error = errorResponse.error {
+                if error.invalidToken == true {
+                    return .invalidToken
+                }
+                if error.missingToken == true {
+                    return .missingToken
+                }
+                return .forbidden(message: error.message)
+            }
+        } catch {
+            // Failed to parse error response
+        }
+        return .forbidden(message: nil)
     }
 }

@@ -1,10 +1,10 @@
-    //
+//
 //  LinkComponents.swift
-//  vercel-menu
+//  Vercel Menu Bar
 //
-//  Created by Ryan Marcus on 1/29/26.
+//  Copyright (c) 2026 Ryan Marcus
+//  Licensed under the MIT License
 //
-
 import SwiftUI
 import AppKit
 
@@ -15,6 +15,8 @@ struct ExternalLinkButton: View {
     let title: String
     let url: URL?
     let style: Style
+    
+    @State private var isHovered = false
     
     enum Style {
         case bordered
@@ -46,10 +48,19 @@ struct ExternalLinkButton: View {
                     .font(.system(size: 9))
             }
             .foregroundColor(style == .bordered ? .vercelPrimaryText : .vercelSecondaryText)
-            .modifier(BorderedButtonStyle(enabled: style == .bordered))
+            .modifier(BorderedButtonStyle(enabled: style == .bordered, isHovered: isHovered))
         }
         .buttonStyle(.plain)
-        .pointerOnHover()
+        .onHover { hovering in
+            withAnimation(.easeInOut(duration: 0.1)) {
+                isHovered = hovering
+            }
+            if hovering {
+                NSCursor.pointingHand.push()
+            } else {
+                NSCursor.pop()
+            }
+        }
     }
 }
 
@@ -57,13 +68,14 @@ struct ExternalLinkButton: View {
 
 private struct BorderedButtonStyle: ViewModifier {
     let enabled: Bool
+    let isHovered: Bool
     
     func body(content: Content) -> some View {
         if enabled {
             content
                 .padding(.horizontal, 8)
                 .padding(.vertical, 4)
-                .background(Color.vercelBackground)
+                .background(isHovered ? Color.vercelHover : Color.vercelBackground)
                 .cornerRadius(3)
                 .overlay(
                     RoundedRectangle(cornerRadius: 3)

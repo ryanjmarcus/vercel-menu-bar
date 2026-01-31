@@ -1,11 +1,12 @@
 //
 //  IntervalSelector.swift
-//  vercel-menu
+//  Vercel Menu Bar
 //
-//  Created by Ryan Marcus on 1/29/26.
+//  Copyright (c) 2026 Ryan Marcus
+//  Licensed under the MIT License
 //
-
 import SwiftUI
+import AppKit
 
 // MARK: - Interval Selector
 
@@ -18,21 +19,11 @@ struct IntervalSelector: View {
     var body: some View {
         HStack(spacing: 0) {
             ForEach(Array(options.enumerated()), id: \.offset) { index, option in
-                let isSelected = selectedSeconds == option
-                
-                Button(action: {
-                    onSelect(option)
-                }) {
-                    Text("\(option)s")
-                        .font(.vercelBody)
-                        .foregroundColor(isSelected ? .vercelPrimaryText : .vercelSecondaryText)
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 6)
-                        .frame(minWidth: 36)
-                        .background(isSelected ? Color.vercelHover : Color.vercelBackground)
-                }
-                .buttonStyle(.plain)
-                .pointerOnHover()
+                IntervalOption(
+                    option: option,
+                    isSelected: selectedSeconds == option,
+                    onSelect: { onSelect(option) }
+                )
                 
                 if index < options.count - 1 {
                     Divider()
@@ -47,5 +38,48 @@ struct IntervalSelector: View {
                 .stroke(Color.vercelBorder, lineWidth: 1)
         )
         .fixedSize()
+    }
+}
+
+// MARK: - Interval Option
+
+private struct IntervalOption: View {
+    let option: Int
+    let isSelected: Bool
+    let onSelect: () -> Void
+    
+    @State private var isHovered = false
+    
+    var body: some View {
+        Button(action: onSelect) {
+            Text("\(option)s")
+                .font(.vercelBody)
+                .foregroundColor(isSelected ? .vercelPrimaryText : .vercelSecondaryText)
+                .padding(.horizontal, 10)
+                .padding(.vertical, 6)
+                .frame(minWidth: 36)
+                .background(backgroundColor)
+        }
+        .buttonStyle(.plain)
+        .onHover { hovering in
+            withAnimation(.easeInOut(duration: 0.1)) {
+                isHovered = hovering
+            }
+            if hovering {
+                NSCursor.pointingHand.push()
+            } else {
+                NSCursor.pop()
+            }
+        }
+    }
+    
+    private var backgroundColor: Color {
+        if isSelected {
+            return Color.vercelHover
+        }
+        if isHovered {
+            return Color.vercelHover.opacity(0.5)
+        }
+        return Color.vercelBackground
     }
 }

@@ -10,10 +10,11 @@ A native macOS menu bar app for monitoring your Vercel deployments.
 
 - **Live deployment monitoring** - View your recent deployments directly from the menu bar
 - **Real-time build status** - See building, ready, error, and cancelled states with live duration counters
-- **Quick actions** - Open deployments in Vercel, visit live sites, or view environment settings
+- **Quick actions** - Open deployments in Vercel or visit live sites
 - **GitHub integration** - Direct links to commits and branches
-- **Project filtering** - Focus on a specific project or view all deployments
+- **Project selector** - Choose which project to monitor
 - **Configurable refresh** - Set polling intervals for normal and active deployment states
+- **Automatic updates** - Stay up to date with built-in Sparkle updates
 
 ## Screenshots
 
@@ -26,11 +27,25 @@ A native macOS menu bar app for monitoring your Vercel deployments.
 
 ## Installation
 
+### Using Homebrew (Recommended)
+
+```bash
+brew install ryanjmarcus/tap/vercel-menu
+```
+
+### Download Directly
+
+Download the latest release from the [Releases page](https://github.com/ryanjmarcus/vercel-menu-bar/releases/latest).
+
+1. Download `Vercel-Menu-Bar-x.x.x.dmg`
+2. Open the DMG and drag the app to your Applications folder
+3. Launch the app from Applications
+
 ### From Source
 
 1. Clone the repository:
    ```bash
-   git clone https://github.com/yourusername/vercel-menu-bar.git
+   git clone https://github.com/ryanjmarcus/vercel-menu-bar.git
    cd vercel-menu-bar
    ```
 
@@ -40,6 +55,16 @@ A native macOS menu bar app for monitoring your Vercel deployments.
    ```
 
 3. Build and run (⌘R)
+
+#### Building for Distribution
+
+To build a distributable DMG:
+
+```bash
+./scripts/build.sh
+```
+
+This will create both a `.dmg` and `.zip` in the `build/` directory.
 
 ### Getting a Vercel API Token
 
@@ -83,6 +108,7 @@ vercel-menu-bar/
 - **Combine** - Reactive data flow
 - **AppKit** - Native macOS integration for menu bar
 - **URLSession** - Networking
+- **Sparkle** - Automatic updates
 
 ## Contributing
 

@@ -1,10 +1,10 @@
 //
 //  MainViewModel.swift
-//  vercel-menu
+//  Vercel Menu Bar
 //
-//  Created by Ryan Marcus on 1/29/26.
+//  Copyright (c) 2026 Ryan Marcus
+//  Licensed under the MIT License
 //
-
 import SwiftUI
 import Observation
 
@@ -12,7 +12,7 @@ import Observation
 
 enum ViewState: Equatable {
     case main
-    case settings
+    case settings(focusToken: Bool = false)
     case deploymentDetail(Deployment)
     
     static func == (lhs: ViewState, rhs: ViewState) -> Bool {
@@ -39,7 +39,7 @@ enum ViewState: Equatable {
 enum ContentDisplayState {
     case loading
     case noApiKey
-    case noProject
+    case invalidToken
     case noDeployments
     case hasDeployments(latest: Deployment)
     
@@ -48,7 +48,7 @@ enum ContentDisplayState {
         isLoading: Bool,
         hasApiKey: Bool,
         hasSelectedProject: Bool,
-        hasError: Bool
+        errorMessage: String?
     ) {
         if let latest = latestDeployment {
             self = .hasDeployments(latest: latest)
@@ -56,9 +56,12 @@ enum ContentDisplayState {
             self = .loading
         } else if !hasApiKey {
             self = .noApiKey
-        } else if !hasSelectedProject {
-            self = .noProject
+        } else if errorMessage != nil {
+            self = .invalidToken
+        } else if hasSelectedProject {
+            self = .noDeployments
         } else {
+            // No project selected - show nothing (empty state)
             self = .noDeployments
         }
     }
@@ -91,7 +94,7 @@ final class MainViewModel {
             isLoading: api.isLoading,
             hasApiKey: settings.hasApiKey,
             hasSelectedProject: settings.hasSelectedProject,
-            hasError: api.error != nil
+            errorMessage: api.error
         )
     }
     
@@ -132,9 +135,9 @@ final class MainViewModel {
     
     // MARK: - Actions
     
-    func navigateToSettings() {
+    func navigateToSettings(focusToken: Bool = false) {
         withAnimation {
-            viewState = .settings
+            viewState = .settings(focusToken: focusToken)
         }
     }
     

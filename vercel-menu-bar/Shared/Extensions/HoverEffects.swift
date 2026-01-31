@@ -1,10 +1,10 @@
 //
 //  HoverEffects.swift
-//  vercel-menu
+//  Vercel Menu Bar
 //
-//  Created by Ryan Marcus on 1/29/26.
+//  Copyright (c) 2026 Ryan Marcus
+//  Licensed under the MIT License
 //
-
 import SwiftUI
 import AppKit
 
@@ -80,6 +80,38 @@ struct UnderlineHoverEffect: ViewModifier {
     }
 }
 
+// MARK: - Hoverable Button Effect
+
+/// A view modifier that provides subtle hover highlighting for buttons and controls
+struct HoverableButtonEffect: ViewModifier {
+    @State private var isHovered = false
+    let disabled: Bool
+    let cornerRadius: CGFloat
+    
+    init(disabled: Bool = false, cornerRadius: CGFloat = 4) {
+        self.disabled = disabled
+        self.cornerRadius = cornerRadius
+    }
+    
+    func body(content: Content) -> some View {
+        content
+            .background(
+                RoundedRectangle(cornerRadius: cornerRadius)
+                    .fill(isHovered && !disabled ? Color.vercelHover : Color.clear)
+            )
+            .onHover { hovering in
+                withAnimation(.easeInOut(duration: 0.1)) {
+                    isHovered = hovering
+                }
+                if hovering && !disabled {
+                    NSCursor.pointingHand.push()
+                } else {
+                    NSCursor.pop()
+                }
+            }
+    }
+}
+
 // MARK: - View Extensions
 
 extension View {
@@ -96,5 +128,10 @@ extension View {
     /// Adds an underline on hover (like web links)
     func underlineOnHover(disabled: Bool = false) -> some View {
         modifier(UnderlineHoverEffect(disabled: disabled))
+    }
+    
+    /// Adds subtle hover highlighting for buttons and controls
+    func hoverableButton(disabled: Bool = false, cornerRadius: CGFloat = 4) -> some View {
+        modifier(HoverableButtonEffect(disabled: disabled, cornerRadius: cornerRadius))
     }
 }

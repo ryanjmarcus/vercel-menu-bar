@@ -6,6 +6,10 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		56352B482F2D9D6B007E0A69 /* Sparkle in Frameworks */ = {isa = PBXBuildFile; productRef = 56352B472F2D9D6B007E0A69 /* Sparkle */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXFileReference section */
 		568F31FF2F2AB366005DD5AE /* vercel-menu-bar.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "vercel-menu-bar.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
@@ -23,6 +27,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				56352B482F2D9D6B007E0A69 /* Sparkle in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -65,6 +70,7 @@
 			);
 			name = "vercel-menu-bar";
 			packageProductDependencies = (
+				56352B472F2D9D6B007E0A69 /* Sparkle */,
 			);
 			productName = "vercel-menu-bar";
 			productReference = 568F31FF2F2AB366005DD5AE /* vercel-menu-bar.app */;
@@ -94,6 +100,9 @@
 			);
 			mainGroup = 568F31F62F2AB366005DD5AE;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				56352B462F2D9D6B007E0A69 /* XCRemoteSwiftPackageReference "Sparkle" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 568F32002F2AB366005DD5AE /* Products */;
 			projectDirPath = "";
@@ -287,7 +296,8 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
 				CODE_SIGN_ENTITLEMENTS = "vercel-menu-bar/vercel-menu-bar.entitlements";
-				CODE_SIGN_STYLE = Automatic;
+				CODE_SIGN_IDENTITY = "Developer ID Application";
+				CODE_SIGN_STYLE = Manual;
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = JM7ZEPER79;
@@ -337,6 +347,25 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		56352B462F2D9D6B007E0A69 /* XCRemoteSwiftPackageReference "Sparkle" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/sparkle-project/Sparkle";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 2.8.1;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		56352B472F2D9D6B007E0A69 /* Sparkle */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 56352B462F2D9D6B007E0A69 /* XCRemoteSwiftPackageReference "Sparkle" */;
+			productName = Sparkle;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 568F31F72F2AB366005DD5AE /* Project object */;
 }

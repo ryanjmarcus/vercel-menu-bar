@@ -1,10 +1,10 @@
 //
 //  Theme.swift
-//  vercel-menu
+//  Vercel Menu Bar
 //
-//  Created by Ryan Marcus on 1/28/26.
+//  Copyright (c) 2026 Ryan Marcus
+//  Licensed under the MIT License
 //
-
 import SwiftUI
 import AppKit
 
@@ -20,6 +20,7 @@ extension Color {
     // Text
     static let vercelPrimaryText = Color(hex: "fafafa")
     static let vercelSecondaryText = Color(hex: "a1a1a1")
+    static let vercelSecondaryTextHover = Color(hex: "c8c8c8") // Subtle hover state
     static let vercelTertiaryText = Color(hex: "666666")
     
     // Status Colors (from Geist design system)

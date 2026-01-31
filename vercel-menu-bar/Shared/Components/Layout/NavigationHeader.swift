@@ -1,10 +1,10 @@
 //
 //  NavigationHeader.swift
-//  vercel-menu
+//  Vercel Menu Bar
 //
-//  Created by Ryan Marcus on 1/29/26.
+//  Copyright (c) 2026 Ryan Marcus
+//  Licensed under the MIT License
 //
-
 import SwiftUI
 import AppKit
 
@@ -14,6 +14,8 @@ import AppKit
 struct BackButton: View {
     let action: () -> Void
     
+    @State private var isHovered = false
+    
     var body: some View {
         Button(action: action) {
             HStack(spacing: 4) {
@@ -22,10 +24,19 @@ struct BackButton: View {
                 Text("Back")
                     .font(.vercelBody)
             }
-            .foregroundColor(.vercelSecondaryText)
+            .foregroundColor(isHovered ? .vercelSecondaryTextHover : .vercelSecondaryText)
         }
         .buttonStyle(.plain)
-        .pointerOnHover()
+        .onHover { hovering in
+            withAnimation(.easeInOut(duration: 0.1)) {
+                isHovered = hovering
+            }
+            if hovering {
+                NSCursor.pointingHand.push()
+            } else {
+                NSCursor.pop()
+            }
+        }
     }
 }
 
@@ -49,26 +60,22 @@ struct NavigationHeader<TrailingContent: View>: View {
     
     var body: some View {
         VStack(spacing: 0) {
-            HStack(spacing: 12) {
-                BackButton(action: onBack)
-                
+            ZStack {
+                // Centered title
                 if let title = title {
-                    Spacer()
-                    
                     Text(title)
                         .font(.vercelHeading)
                         .foregroundColor(.vercelPrimaryText)
-                    
-                    Spacer()
-                    
-                    // Invisible spacer to balance
-                    BackButton(action: {})
-                        .opacity(0)
-                } else {
-                    Spacer()
                 }
                 
-                trailingContent
+                // Back button on left, trailing content on right
+                HStack(spacing: 12) {
+                    BackButton(action: onBack)
+                    
+                    Spacer()
+                    
+                    trailingContent
+                }
             }
             .padding(.horizontal, 16)
             .padding(.vertical, 12)
@@ -88,6 +95,8 @@ struct IconButton: View {
     let isLoading: Bool
     let disabled: Bool
     
+    @State private var isHovered = false
+    
     init(
         systemName: String,
         isLoading: Bool = false,
@@ -104,29 +113,49 @@ struct IconButton: View {
         Button(action: action) {
             Image(systemName: isLoading ? "arrow.triangle.2.circlepath" : systemName)
                 .font(.system(size: 12, weight: .medium))
-                .foregroundColor(.vercelSecondaryText)
+                .foregroundColor(isHovered && !disabled ? .vercelSecondaryTextHover : .vercelSecondaryText)
                 .rotationEffect(.degrees(isLoading ? 360 : 0))
                 .animation(isLoading ? .linear(duration: 1).repeatForever(autoreverses: false) : .default, value: isLoading)
         }
         .buttonStyle(.plain)
         .disabled(disabled || isLoading)
-        .pointerOnHover(disabled: disabled || isLoading)
+        .onHover { hovering in
+            withAnimation(.easeInOut(duration: 0.1)) {
+                isHovered = hovering
+            }
+            if hovering && !disabled && !isLoading {
+                NSCursor.pointingHand.push()
+            } else {
+                NSCursor.pop()
+            }
+        }
     }
 }
 
 // MARK: - Close Button
 
-/// A close button that terminates the app
+/// A close button that closes the popover
 struct CloseButton: View {
+    let action: () -> Void
+    
+    @State private var isHovered = false
+    
     var body: some View {
-        Button(action: {
-            NSApplication.shared.terminate(nil)
-        }) {
+        Button(action: action) {
             Image(systemName: "xmark")
                 .font(.system(size: 12, weight: .medium))
-                .foregroundColor(.vercelSecondaryText)
+                .foregroundColor(isHovered ? .vercelSecondaryTextHover : .vercelSecondaryText)
         }
         .buttonStyle(.plain)
-        .pointerOnHover()
+        .onHover { hovering in
+            withAnimation(.easeInOut(duration: 0.1)) {
+                isHovered = hovering
+            }
+            if hovering {
+                NSCursor.pointingHand.push()
+            } else {
+                NSCursor.pop()
+            }
+        }
     }
 }

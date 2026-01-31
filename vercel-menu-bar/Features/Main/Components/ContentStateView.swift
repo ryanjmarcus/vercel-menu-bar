@@ -1,10 +1,10 @@
 //
 //  ContentStateView.swift
-//  vercel-menu
+//  Vercel Menu Bar
 //
-//  Created by Ryan Marcus on 1/29/26.
+//  Copyright (c) 2026 Ryan Marcus
+//  Licensed under the MIT License
 //
-
 import SwiftUI
 
 // MARK: - Content State View
@@ -31,12 +31,12 @@ struct ContentStateView: View {
             )
             .padding(.top, 40)
             
-        case .noProject:
+        case .invalidToken:
             EmptyStateView(
-                icon: "folder",
-                title: "Select a Project",
-                message: "Choose a project to view its deployments",
-                buttonTitle: "Select Project",
+                icon: "key.fill",
+                title: "Token Error",
+                message: "Please update your token to view deployments",
+                buttonTitle: "Update Token",
                 action: onNavigateToSettings
             )
             .padding(.top, 40)

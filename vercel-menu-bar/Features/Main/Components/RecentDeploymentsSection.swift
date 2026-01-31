@@ -1,10 +1,10 @@
 //
 //  RecentDeploymentsSection.swift
-//  vercel-menu
+//  Vercel Menu Bar
 //
-//  Created by Ryan Marcus on 1/29/26.
+//  Copyright (c) 2026 Ryan Marcus
+//  Licensed under the MIT License
 //
-
 import SwiftUI
 
 // MARK: - Recent Deployments Section

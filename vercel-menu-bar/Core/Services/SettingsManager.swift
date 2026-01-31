@@ -1,10 +1,10 @@
 //
 //  SettingsManager.swift
-//  vercel-menu
+//  Vercel Menu Bar
 //
-//  Created by Ryan Marcus on 1/28/26.
+//  Copyright (c) 2026 Ryan Marcus
+//  Licensed under the MIT License
 //
-
 import Foundation
 import Combine
 
@@ -23,7 +23,13 @@ class SettingsManager: ObservableObject {
     
     @Published var apiKey: String {
         didSet {
-            UserDefaults.standard.set(apiKey, forKey: apiKeyKey)
+            if apiKey.isEmpty {
+                KeychainManager.shared.delete(forKey: apiKeyKey)
+                // Also remove from UserDefaults for migration cleanup
+                UserDefaults.standard.removeObject(forKey: apiKeyKey)
+            } else {
+                _ = KeychainManager.shared.save(apiKey, forKey: apiKeyKey)
+            }
         }
     }
     
@@ -64,7 +70,18 @@ class SettingsManager: ObservableObject {
     }
     
     init() {
-        self.apiKey = UserDefaults.standard.string(forKey: apiKeyKey) ?? ""
+        // Try to load API key from Keychain first, fallback to UserDefaults for migration
+        if let keychainKey = KeychainManager.shared.get(forKey: apiKeyKey) {
+            self.apiKey = keychainKey
+        } else if let userDefaultsKey = UserDefaults.standard.string(forKey: apiKeyKey), !userDefaultsKey.isEmpty {
+            // Migrate from UserDefaults to Keychain
+            self.apiKey = userDefaultsKey
+            _ = KeychainManager.shared.save(userDefaultsKey, forKey: apiKeyKey)
+            UserDefaults.standard.removeObject(forKey: apiKeyKey)
+        } else {
+            self.apiKey = ""
+        }
+        
         self.selectedProjectId = UserDefaults.standard.string(forKey: projectIdKey) ?? ""
         self.selectedProjectName = UserDefaults.standard.string(forKey: projectNameKey) ?? ""
         self.selectedProjectFaviconURL = UserDefaults.standard.string(forKey: projectFaviconKey) ?? ""

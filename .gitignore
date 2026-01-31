@@ -66,3 +66,5 @@ iOSInjectionProject/
 *.p12
 *.key
 secrets/
+sparkle_private_key
+*.privkey

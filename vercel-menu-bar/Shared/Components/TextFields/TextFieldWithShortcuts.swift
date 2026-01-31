@@ -1,10 +1,10 @@
 //
 //  TextFieldWithShortcuts.swift
-//  vercel-menu
+//  Vercel Menu Bar
 //
-//  Created by Ryan Marcus on 1/29/26.
+//  Copyright (c) 2026 Ryan Marcus
+//  Licensed under the MIT License
 //
-
 import SwiftUI
 import AppKit
 
@@ -16,17 +16,24 @@ struct TextFieldWithShortcuts: NSViewRepresentable {
     @Binding var text: String
     let placeholder: String
     let isSecure: Bool
+    let shouldFocus: Bool
     
-    init(_ placeholder: String, text: Binding<String>, isSecure: Bool = false) {
+    init(_ placeholder: String, text: Binding<String>, isSecure: Bool = false, shouldFocus: Bool = false) {
         self.placeholder = placeholder
         self._text = text
         self.isSecure = isSecure
+        self.shouldFocus = shouldFocus
     }
     
     func makeNSView(context: Context) -> NSTextField {
-        let textField: NSTextField = isSecure
-            ? SecureTextFieldWithShortcuts()
-            : TextFieldWithShortcutsNS()
+        let textField: NSTextField
+        if isSecure {
+            let secureField = SecureTextFieldWithShortcuts(coordinator: context.coordinator)
+            secureField.actualValue = text // Initialize tracked value
+            textField = secureField
+        } else {
+            textField = TextFieldWithShortcutsNS(coordinator: context.coordinator)
+        }
         
         textField.placeholderString = placeholder
         textField.stringValue = text
@@ -38,13 +45,30 @@ struct TextFieldWithShortcuts: NSViewRepresentable {
         textField.textColor = NSColor(red: 0.98, green: 0.98, blue: 0.98, alpha: 1.0)
         textField.delegate = context.coordinator
         
+        // Focus the field if requested (with delay to ensure window is ready)
+        if shouldFocus {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                textField.window?.makeFirstResponder(textField)
+            }
+        }
+        
         return textField
     }
     
     func updateNSView(_ nsView: NSTextField, context: Context) {
-        if nsView.stringValue != text {
-            nsView.stringValue = text
+        if let secureField = nsView as? SecureTextFieldWithShortcuts {
+            // For secure fields, update the tracked actual value
+            if secureField.actualValue != text {
+                secureField.actualValue = text
+                secureField.stringValue = text
+            }
+        } else {
+            // For regular fields, update normally
+            if nsView.stringValue != text {
+                nsView.stringValue = text
+            }
         }
+        
     }
     
     func makeCoordinator() -> Coordinator {
@@ -60,7 +84,12 @@ struct TextFieldWithShortcuts: NSViewRepresentable {
         
         func controlTextDidChange(_ obj: Notification) {
             guard let textField = obj.object as? NSTextField else { return }
-            parent.text = textField.stringValue
+            // For secure fields, use the tracked actual value
+            if let secureField = textField as? SecureTextFieldWithShortcuts {
+                parent.text = secureField.actualValue
+            } else {
+                parent.text = textField.stringValue
+            }
         }
     }
 }
@@ -68,6 +97,17 @@ struct TextFieldWithShortcuts: NSViewRepresentable {
 // MARK: - Private NSTextField Subclasses
 
 private class TextFieldWithShortcutsNS: NSTextField {
+    weak var coordinator: TextFieldWithShortcuts.Coordinator?
+    
+    init(coordinator: TextFieldWithShortcuts.Coordinator) {
+        self.coordinator = coordinator
+        super.init(frame: .zero)
+    }
+    
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+    
     override func performKeyEquivalent(with event: NSEvent) -> Bool {
         guard event.modifierFlags.contains(.command),
               let key = event.charactersIgnoringModifiers?.lowercased(),
@@ -86,7 +126,16 @@ private class TextFieldWithShortcutsNS: NSTextField {
     
     private func paste(editor: NSText) -> Bool {
         guard let string = NSPasteboard.general.string(forType: .string) else { return false }
-        editor.replaceCharacters(in: editor.selectedRange, with: string)
+        let range = editor.selectedRange
+        editor.replaceCharacters(in: range, with: string)
+        
+        // Manually trigger the delegate to update the binding
+        // For NSTextField, we can read stringValue directly
+        if let coordinator = coordinator {
+            coordinator.controlTextDidChange(
+                Notification(name: NSControl.textDidChangeNotification, object: self)
+            )
+        }
         return true
     }
     
@@ -102,11 +151,32 @@ private class TextFieldWithShortcutsNS: NSTextField {
     private func cut(editor: NSText) -> Bool {
         guard copy(editor: editor) else { return false }
         editor.replaceCharacters(in: editor.selectedRange, with: "")
+        
+        // Manually trigger the delegate to update the binding
+        if let coordinator = coordinator {
+            coordinator.controlTextDidChange(
+                Notification(name: NSControl.textDidChangeNotification, object: self)
+            )
+        }
         return true
     }
 }
 
 private class SecureTextFieldWithShortcuts: NSSecureTextField {
+    weak var coordinator: TextFieldWithShortcuts.Coordinator?
+    var actualValue: String = "" // Track actual content for secure field
+    
+    init(coordinator: TextFieldWithShortcuts.Coordinator) {
+        self.coordinator = coordinator
+        super.init(frame: .zero)
+    }
+    
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+    
+    // Override to track actual value separately from masked display
+    
     override func performKeyEquivalent(with event: NSEvent) -> Bool {
         guard event.modifierFlags.contains(.command),
               let key = event.charactersIgnoringModifiers?.lowercased(),
@@ -117,7 +187,18 @@ private class SecureTextFieldWithShortcuts: NSSecureTextField {
         switch key {
         case "v":
             if let string = NSPasteboard.general.string(forType: .string) {
-                editor.replaceCharacters(in: editor.selectedRange, with: string)
+                let range = editor.selectedRange
+                editor.replaceCharacters(in: range, with: string)
+                
+                // Update our tracked actual value
+                let currentText = (actualValue as NSString).mutableCopy() as! NSMutableString
+                currentText.replaceCharacters(in: range, with: string)
+                actualValue = currentText as String
+                
+                // Update the binding with the actual value
+                if let coordinator = coordinator {
+                    coordinator.parent.text = actualValue
+                }
                 return true
             }
         case "a":
@@ -127,5 +208,17 @@ private class SecureTextFieldWithShortcuts: NSSecureTextField {
             break
         }
         return super.performKeyEquivalent(with: event)
+    }
+    
+    override func textDidChange(_ notification: Notification) {
+        super.textDidChange(notification)
+        // Try to get actual value from editor if available
+        if let editor = currentEditor() as? NSTextView {
+            actualValue = editor.string
+            // Update binding
+            if let coordinator = coordinator {
+                coordinator.parent.text = actualValue
+            }
+        }
     }
 }

@@ -1,11 +1,12 @@
 //
 //  RefreshSettings.swift
-//  vercel-menu
+//  Vercel Menu Bar
 //
-//  Created by Ryan Marcus on 1/29/26.
+//  Copyright (c) 2026 Ryan Marcus
+//  Licensed under the MIT License
 //
-
 import SwiftUI
+import AppKit
 
 // MARK: - Active Interval Selector
 
@@ -28,25 +29,19 @@ struct ActiveIntervalSelector: View {
                     ? !settings.fastRefreshEnabled
                     : settings.fastRefreshEnabled && settings.fastRefreshIntervalSeconds == option.seconds
                 
-                Button(action: {
-                    if let seconds = option.seconds {
-                        settings.fastRefreshEnabled = true
-                        settings.fastRefreshIntervalSeconds = seconds
-                    } else {
-                        settings.fastRefreshEnabled = false
+                ActiveIntervalOption(
+                    label: option.label,
+                    isSelected: isSelected,
+                    onSelect: {
+                        if let seconds = option.seconds {
+                            settings.fastRefreshEnabled = true
+                            settings.fastRefreshIntervalSeconds = seconds
+                        } else {
+                            settings.fastRefreshEnabled = false
+                        }
+                        onSave()
                     }
-                    onSave()
-                }) {
-                    Text(option.label)
-                        .font(.vercelBody)
-                        .foregroundColor(isSelected ? .vercelPrimaryText : .vercelSecondaryText)
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 6)
-                        .frame(minWidth: 36)
-                        .background(isSelected ? Color.vercelHover : Color.vercelBackground)
-                }
-                .buttonStyle(.plain)
-                .pointerOnHover()
+                )
                 
                 if index < options.count - 1 {
                     Divider()
@@ -61,5 +56,48 @@ struct ActiveIntervalSelector: View {
                 .stroke(Color.vercelBorder, lineWidth: 1)
         )
         .fixedSize()
+    }
+}
+
+// MARK: - Active Interval Option
+
+private struct ActiveIntervalOption: View {
+    let label: String
+    let isSelected: Bool
+    let onSelect: () -> Void
+    
+    @State private var isHovered = false
+    
+    var body: some View {
+        Button(action: onSelect) {
+            Text(label)
+                .font(.vercelBody)
+                .foregroundColor(isSelected ? .vercelPrimaryText : .vercelSecondaryText)
+                .padding(.horizontal, 10)
+                .padding(.vertical, 6)
+                .frame(minWidth: 36)
+                .background(backgroundColor)
+        }
+        .buttonStyle(.plain)
+        .onHover { hovering in
+            withAnimation(.easeInOut(duration: 0.1)) {
+                isHovered = hovering
+            }
+            if hovering {
+                NSCursor.pointingHand.push()
+            } else {
+                NSCursor.pop()
+            }
+        }
+    }
+    
+    private var backgroundColor: Color {
+        if isSelected {
+            return Color.vercelHover
+        }
+        if isHovered {
+            return Color.vercelHover.opacity(0.5)
+        }
+        return Color.vercelBackground
     }
 }

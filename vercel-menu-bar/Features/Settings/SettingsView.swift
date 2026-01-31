@@ -1,10 +1,10 @@
 //
 //  SettingsView.swift
-//  vercel-menu
+//  Vercel Menu Bar
 //
-//  Created by Ryan Marcus on 1/28/26.
+//  Copyright (c) 2026 Ryan Marcus
+//  Licensed under the MIT License
 //
-
 import SwiftUI
 import AppKit
 
@@ -15,9 +15,12 @@ struct SettingsView: View {
     @State private var isKeyVisible: Bool = false
     @State private var isValidating: Bool = false
     @State private var isProjectDropdownExpanded: Bool = false
+    @State private var hasAppliedInitialFocus: Bool = false
+    @State private var isGitHubHovered: Bool = false
     
     let onBack: () -> Void
     let onSave: () -> Void
+    var focusTokenInput: Bool = false
     
     private let refreshIntervalOptions = [10, 15, 30, 60]
     
@@ -36,9 +39,12 @@ struct SettingsView: View {
                     
                     // Refresh Section
                     refreshSection
+                    
+                    // Footer
+                    aboutFooter
                 }
                 .padding(.top, 12)
-                .padding(.bottom, 16)
+                .padding(.bottom, 14)
             }
         }
         .background(Color.vercelBackground)
@@ -50,6 +56,45 @@ struct SettingsView: View {
                 }
             }
         }
+    }
+    
+    // MARK: - About Footer
+    
+    private var aboutFooter: some View {
+        let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0"
+        
+        return HStack(spacing: 0) {
+            Button(action: {
+                if let url = URL(string: "https://github.com/ryanjmarcus/vercel-menu-bar") {
+                    NSWorkspace.shared.open(url)
+                }
+            }) {
+                HStack(spacing: 2) {
+                    Text("GitHub")
+                        .font(.system(size: 11))
+                    Image(systemName: "arrow.up.right.square")
+                        .font(.system(size: 9))
+                }
+                .foregroundColor(isGitHubHovered ? .vercelSecondaryTextHover : .vercelSecondaryText.opacity(0.5))
+            }
+            .buttonStyle(.plain)
+            .onHover { hovering in
+                withAnimation(.easeInOut(duration: 0.1)) {
+                    isGitHubHovered = hovering
+                }
+                if hovering {
+                    NSCursor.pointingHand.push()
+                } else {
+                    NSCursor.pop()
+                }
+            }
+            
+            Text("  ·  v\(version)")
+                .font(.system(size: 11))
+                .foregroundColor(.vercelSecondaryText.opacity(0.5))
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.top, 2)
     }
     
     // MARK: - Project Section
@@ -116,12 +161,15 @@ struct SettingsView: View {
                         }
                     }
                     
-                    IconActionButton(systemName: isKeyVisible ? "eye.slash" : "eye") {
-                        isKeyVisible.toggle()
+                    // Only show eye icon if token hasn't been saved yet, or if user is editing
+                    if !settings.hasApiKey || apiKeyInput != settings.apiKey {
+                        IconActionButton(systemName: isKeyVisible ? "eye.slash" : "eye") {
+                            isKeyVisible.toggle()
+                        }
                     }
                     
                     if settings.hasApiKey {
-                        IconActionButton(systemName: "trash") {
+                        IconActionButton(systemName: "trash", isDestructive: true) {
                             withAnimation(.easeInOut(duration: 0.2)) {
                                 apiKeyInput = ""
                                 settings.apiKey = ""
@@ -130,6 +178,7 @@ struct SettingsView: View {
                                 settings.selectedProjectFaviconURL = ""
                                 api.projects = []
                                 api.deployments = []
+                                api.error = nil // Clear any error when token is removed
                             }
                             onSave()
                         }
@@ -146,23 +195,47 @@ struct SettingsView: View {
     }
     
     private var apiKeyInputField: some View {
-        TextFieldWithShortcuts(
-            isKeyVisible ? "Enter your Vercel API token" : "Enter your API token...",
-            text: $apiKeyInput,
-            isSecure: !isKeyVisible
-        )
-        .frame(height: 18)
-        .padding(10)
-        .background(Color.vercelBackground)
-        .cornerRadius(4)
-        .overlay(
-            RoundedRectangle(cornerRadius: 4)
-                .stroke(Color.vercelBorder, lineWidth: 1)
-        )
+        ZStack(alignment: .trailing) {
+            TextFieldWithShortcuts(
+                isKeyVisible ? "Enter your Vercel API token" : "Enter your API token",
+                text: $apiKeyInput,
+                isSecure: !isKeyVisible,
+                shouldFocus: focusTokenInput && !hasAppliedInitialFocus
+            )
+            .id("apiKeyInput-\(isKeyVisible)") // Force recreate when visibility toggles
+            .frame(height: 18)
+            .padding(10)
+            .padding(.trailing, showErrorIcon ? 24 : 0) // Add padding when error icon is shown
+            .background(Color.vercelBackground)
+            .cornerRadius(4)
+            .overlay(
+                RoundedRectangle(cornerRadius: 4)
+                    .stroke(showErrorIcon ? Color.red.opacity(0.4) : Color.vercelBorder, lineWidth: 1)
+            )
+            .onAppear {
+                if focusTokenInput && !hasAppliedInitialFocus {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
+                        hasAppliedInitialFocus = true
+                    }
+                }
+            }
+            
+            // Error icon
+            if showErrorIcon {
+                Image(systemName: "exclamationmark.circle.fill")
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundColor(.red)
+                    .padding(.trailing, 10)
+            }
+        }
+    }
+    
+    private var showErrorIcon: Bool {
+        settings.hasApiKey && api.error != nil
     }
     
     private var saveTokenButton: some View {
-        Button(action: saveToken) {
+        HoverableButton(action: saveToken, disabled: isValidating) {
             HStack(spacing: 6) {
                 if isValidating {
                     ProgressView()
@@ -178,14 +251,7 @@ struct SettingsView: View {
             .frame(maxWidth: .infinity)
             .frame(height: 18)
             .padding(10)
-            .background(Color.vercelBackground)
-            .cornerRadius(4)
-            .overlay(
-                RoundedRectangle(cornerRadius: 4)
-                    .stroke(Color.vercelBorder, lineWidth: 1)
-            )
         }
-        .buttonStyle(.plain)
         .disabled(isValidating)
         .pointerOnHover(disabled: isValidating)
     }
@@ -195,6 +261,16 @@ struct SettingsView: View {
         
         isValidating = true
         settings.apiKey = apiKeyInput
+        
+        // Clear error if token is empty
+        if apiKeyInput.isEmpty {
+            api.error = nil
+            api.projects = []
+            api.deployments = []
+            isValidating = false
+            onSave()
+            return
+        }
         
         Task {
             await api.fetchProjects(apiKey: apiKeyInput)
@@ -215,5 +291,5 @@ struct SettingsView: View {
 
 #Preview {
     SettingsView(onBack: {}, onSave: {})
-        .frame(width: 380, height: 520)
+        .frame(width: 380, height: 556)
 }

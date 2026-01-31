@@ -1,10 +1,10 @@
 //
-//  MenuBarComponents.swift
-//  vercel-menu
+//  MenuBarIcon.swift
+//  Vercel Menu Bar
 //
-//  Created by Ryan Marcus on 1/29/26.
+//  Copyright (c) 2026 Ryan Marcus
+//  Licensed under the MIT License
 //
-
 import SwiftUI
 
 // MARK: - Menu Bar Status Badge

@@ -1,12 +1,18 @@
 //
 //  ContentView.swift
-//  vercel-menu
+//  Vercel Menu Bar
 //
-//  Created by Ryan Marcus on 1/28/26.
+//  Copyright (c) 2026 Ryan Marcus
+//  Licensed under the MIT License
 //
-
 import SwiftUI
 import AppKit
+
+// MARK: - Notification Names
+
+extension Notification.Name {
+    static let closePopover = Notification.Name("closePopover")
+}
 
 // MARK: - Main Menu Bar View
 
@@ -32,7 +38,7 @@ struct MenuBarView: View {
             case .main:
                 mainView
                     .transition(.move(edge: .leading).combined(with: .opacity))
-            case .settings:
+            case .settings(let focusToken):
                 SettingsView(
                     onBack: {
                         withAnimation {
@@ -41,7 +47,8 @@ struct MenuBarView: View {
                     },
                     onSave: {
                         refreshDeployments()
-                    }
+                    },
+                    focusTokenInput: focusToken
                 )
                 .transition(.move(edge: .trailing).combined(with: .opacity))
             case .deploymentDetail(let deployment):
@@ -56,7 +63,7 @@ struct MenuBarView: View {
                 .transition(.move(edge: .trailing).combined(with: .opacity))
             }
         }
-        .frame(width: 380, height: 520)
+        .frame(width: 380, height: 556)
         .animation(.easeInOut(duration: 0.2), value: viewStateKey)
         .onChange(of: api.isLoading) { oldValue, newValue in
             if newValue {
@@ -190,7 +197,7 @@ struct MenuBarView: View {
             isLoading: api.isLoading,
             hasApiKey: settings.hasApiKey,
             hasSelectedProject: settings.hasSelectedProject,
-            hasError: api.error != nil
+            errorMessage: api.error
         )
     }
     
@@ -210,13 +217,16 @@ struct MenuBarView: View {
                 isLoading: api.isLoading,
                 refreshRotationAngle: refreshRotationAngle,
                 onRefresh: refreshDeployments,
-                onSettings: { withAnimation { viewState = .settings } }
+                onSettings: { withAnimation { viewState = .settings() } },
+                onClose: {
+                    NotificationCenter.default.post(name: .closePopover, object: nil)
+                }
             )
             
             // Error banner
             if let error = api.error {
                 ErrorBanner(error, actionTitle: "Settings") {
-                    withAnimation { viewState = .settings }
+                    withAnimation { viewState = .settings() }
                 }
             }
             
@@ -227,7 +237,7 @@ struct MenuBarView: View {
                     ContentStateView(
                         state: contentState,
                         project: api.projects.first(where: { $0.id == settings.selectedProjectId }),
-                        onNavigateToSettings: { withAnimation { viewState = .settings } },
+                        onNavigateToSettings: { withAnimation { viewState = .settings(focusToken: true) } },
                         onRefresh: refreshDeployments
                     )
                     
@@ -263,5 +273,5 @@ struct MenuBarView: View {
 
 #Preview {
     MenuBarView()
-        .frame(width: 380, height: 520)
+        .frame(width: 380, height: 556)
 }

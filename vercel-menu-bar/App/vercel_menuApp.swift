@@ -1,13 +1,14 @@
 //
 //  vercel_menuApp.swift
-//  vercel-menu
+//  Vercel Menu Bar
 //
-//  Created by Ryan Marcus on 1/28/26.
+//  Copyright (c) 2026 Ryan Marcus
+//  Licensed under the MIT License
 //
-
 import SwiftUI
 import AppKit
 import Combine
+import Sparkle
 
 @main
 struct vercel_menuApp: App {
@@ -16,6 +17,27 @@ struct vercel_menuApp: App {
     var body: some Scene {
         Settings {
             EmptyView()
+        }
+    }
+}
+
+// MARK: - Status Bar Button View
+
+class StatusBarButtonView: NSView {
+    var rightClickMenu: NSMenu?
+    
+    override func mouseDown(with event: NSEvent) {
+        // Forward left-clicks to the button behind us
+        if let button = superview as? NSButton {
+            button.mouseDown(with: event)
+        }
+    }
+    
+    override func rightMouseDown(with event: NSEvent) {
+        if let menu = rightClickMenu {
+            menu.popUp(positioning: nil, at: NSPoint(x: bounds.minX, y: bounds.maxY), in: nil)
+        } else {
+            super.rightMouseDown(with: event)
         }
     }
 }
@@ -29,11 +51,22 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private let popover = NSPopover()
     private var cancellables = Set<AnyCancellable>()
     
+    // Sparkle updater controller for automatic updates
+    private var updaterController: SPUStandardUpdaterController!
+    
     func applicationDidFinishLaunching(_ notification: Notification) {
+        // Initialize Sparkle updater for automatic updates
+        updaterController = SPUStandardUpdaterController(
+            startingUpdater: true,
+            updaterDelegate: nil,
+            userDriverDelegate: nil
+        )
+        
         // Create Edit menu for keyboard shortcuts (Cmd+V, Cmd+C, etc.)
         setupEditMenu()
         setupStatusItem()
         observeStatusUpdates()
+        observePopoverClose()
     }
     
     private func setupEditMenu() {
@@ -74,13 +107,31 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
         statusItem = item
         
-        if let button = item.button {
-            button.target = self
-            button.action = #selector(togglePopover(_:))
-        }
+        guard let button = item.button else { return }
+        
+        button.target = self
+        button.action = #selector(togglePopover(_:))
+        button.sendAction(on: .leftMouseDown)
+        
+        // Create custom view for right-click menu support
+        let customView = StatusBarButtonView()
+        customView.frame = button.bounds
+        customView.autoresizingMask = [.width, .height]
+        
+        // Add right-click menu with Quit option
+        let menu = NSMenu()
+        let quitItem = NSMenuItem(title: "Quit", action: #selector(quitApp(_:)), keyEquivalent: "q")
+        quitItem.target = self
+        menu.addItem(quitItem)
+        customView.rightClickMenu = menu
+        
+        // Add custom view as subview to handle right-clicks
+        // Make it non-interactive for left-clicks so they pass through to button
+        customView.wantsLayer = false
+        button.addSubview(customView)
         
         popover.behavior = .transient
-        popover.contentSize = NSSize(width: 380, height: 520)
+        popover.contentSize = NSSize(width: 380, height: 556)
         popover.contentViewController = NSHostingController(rootView: MenuBarView())
         
         updateStatusItemImage()
@@ -128,6 +179,23 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             image.isTemplate = false
             statusItem?.button?.image = image
         }
+    }
+    
+    private func observePopoverClose() {
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(closePopover),
+            name: .closePopover,
+            object: nil
+        )
+    }
+    
+    @objc private func closePopover() {
+        popover.performClose(nil)
+    }
+    
+    @objc private func quitApp(_ sender: Any?) {
+        NSApplication.shared.terminate(nil)
     }
     
     @objc private func togglePopover(_ sender: Any?) {

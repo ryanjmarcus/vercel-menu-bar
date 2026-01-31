@@ -4,5 +4,15 @@
 <dict>
     <key>ATSApplicationFontsPath</key>
     <string>.</string>
+    
+    <!-- Sparkle Auto-Update Configuration -->
+    <key>SUFeedURL</key>
+    <string>https://ryanjmarcus.github.io/vercel-menu-bar/appcast.xml</string>
+    <key>SUPublicEDKey</key>
+    <string>JwEaWv4E5n8gvm0zRPnGKWJrBsDvjVoQNAaa1AfJVKU=</string>
+    <key>SUEnableAutomaticChecks</key>
+    <true/>
+    <key>SUAutomaticallyUpdate</key>
+    <false/>
 </dict>
 </plist>

@@ -1,0 +1,315 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build:
+    runs-on: macos-14
+    
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Setup Xcode
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: latest-stable
+      
+      - name: Get version from tag
+        id: get_version
+        run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+      
+      - name: Import Code Signing Certificate
+        if: ${{ secrets.DEVELOPER_ID_CERTIFICATE_BASE64 != '' }}
+        env:
+          CERTIFICATE_BASE64: ${{ secrets.DEVELOPER_ID_CERTIFICATE_BASE64 }}
+          CERTIFICATE_PASSWORD: ${{ secrets.DEVELOPER_ID_CERTIFICATE_PASSWORD }}
+        run: |
+          # Create temporary keychain
+          KEYCHAIN_PATH=$RUNNER_TEMP/signing.keychain-db
+          KEYCHAIN_PASSWORD=$(openssl rand -base64 32)
+          
+          security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          
+          # Import certificate
+          echo "$CERTIFICATE_BASE64" | base64 --decode > $RUNNER_TEMP/certificate.p12
+          security import $RUNNER_TEMP/certificate.p12 \
+            -P "$CERTIFICATE_PASSWORD" \
+            -A \
+            -t cert \
+            -f pkcs12 \
+            -k "$KEYCHAIN_PATH"
+          
+          # Allow codesign to access keychain
+          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          
+          # Add to keychain search list
+          security list-keychain -d user -s "$KEYCHAIN_PATH" login.keychain
+          
+          rm $RUNNER_TEMP/certificate.p12
+      
+      - name: Setup Notarization Credentials
+        if: ${{ secrets.APPLE_ID != '' && secrets.APPLE_ID_PASSWORD != '' }}
+        env:
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_ID_PASSWORD: ${{ secrets.APPLE_ID_PASSWORD }}
+          TEAM_ID: ${{ secrets.TEAM_ID }}
+        run: |
+          xcrun notarytool store-credentials "notarization-profile" \
+            --apple-id "$APPLE_ID" \
+            --team-id "$TEAM_ID" \
+            --password "$APPLE_ID_PASSWORD"
+      
+      - name: Add Sparkle Package
+        run: |
+          # Sparkle is added via SPM in the Xcode project
+          # Resolve packages before building
+          xcodebuild -resolvePackageDependencies \
+            -project vercel-menu-bar.xcodeproj \
+            -scheme vercel-menu-bar
+      
+      - name: Build and Sign App
+        env:
+          SIGNING_IDENTITY: ${{ secrets.DEVELOPER_ID_CERTIFICATE_BASE64 != '' && 'Developer ID Application: Ryan Marcus (JM7ZEPER79)' || '-' }}
+        run: |
+          # Build the archive
+          xcodebuild archive \
+            -project vercel-menu-bar.xcodeproj \
+            -scheme vercel-menu-bar \
+            -configuration Release \
+            -archivePath build/VercelMenuBar.xcarchive \
+            CODE_SIGN_IDENTITY="$SIGNING_IDENTITY" \
+            CODE_SIGNING_REQUIRED=${{ secrets.DEVELOPER_ID_CERTIFICATE_BASE64 != '' && 'YES' || 'NO' }} \
+            CODE_SIGNING_ALLOWED=YES
+          
+          # Export the app
+          mkdir -p build/export
+          cp -R "build/VercelMenuBar.xcarchive/Products/Applications/vercel-menu-bar.app" "build/export/Vercel Menu Bar.app"
+      
+      - name: Deep Sign App for Notarization
+        if: ${{ secrets.DEVELOPER_ID_CERTIFICATE_BASE64 != '' }}
+        env:
+          SIGNING_IDENTITY: "Developer ID Application: Ryan Marcus (JM7ZEPER79)"
+        run: |
+          APP_PATH="build/export/Vercel Menu Bar.app"
+          ENTITLEMENTS="vercel-menu-bar/vercel-menu-bar.entitlements"
+          
+          # Sign Sparkle framework components (inside-out signing order)
+          if [ -d "$APP_PATH/Contents/Frameworks/Sparkle.framework" ]; then
+            # Sign XPC services
+            find "$APP_PATH/Contents/Frameworks/Sparkle.framework" -name "*.xpc" -type d | while read xpc; do
+              codesign --force --options runtime --timestamp --sign "$SIGNING_IDENTITY" "$xpc" || true
+            done
+            
+            # Sign helper apps
+            find "$APP_PATH/Contents/Frameworks/Sparkle.framework" -name "*.app" -type d | while read app; do
+              codesign --force --options runtime --timestamp --sign "$SIGNING_IDENTITY" "$app" || true
+            done
+            
+            # Sign standalone binaries
+            find "$APP_PATH/Contents/Frameworks/Sparkle.framework" -type f -perm +111 ! -name "*.dylib" | while read binary; do
+              if file "$binary" | grep -q "Mach-O"; then
+                codesign --force --options runtime --timestamp --sign "$SIGNING_IDENTITY" "$binary" || true
+              fi
+            done
+            
+            # Sign the framework itself
+            codesign --force --options runtime --timestamp --sign "$SIGNING_IDENTITY" \
+              "$APP_PATH/Contents/Frameworks/Sparkle.framework" || true
+          fi
+          
+          # Sign other frameworks and dylibs
+          find "$APP_PATH/Contents/Frameworks" -name "*.framework" -type d -maxdepth 1 2>/dev/null | while read framework; do
+            codesign --force --options runtime --timestamp --sign "$SIGNING_IDENTITY" "$framework" || true
+          done
+          find "$APP_PATH/Contents/Frameworks" -name "*.dylib" -type f 2>/dev/null | while read dylib; do
+            codesign --force --options runtime --timestamp --sign "$SIGNING_IDENTITY" "$dylib" || true
+          done
+          
+          # Sign the main app
+          codesign --force --options runtime --timestamp --sign "$SIGNING_IDENTITY" \
+            --entitlements "$ENTITLEMENTS" "$APP_PATH"
+          
+          # Verify
+          codesign --verify --deep --strict "$APP_PATH"
+      
+      - name: Create DMG
+        run: |
+          hdiutil create \
+            -volname "Vercel Menu Bar" \
+            -srcfolder build/export \
+            -ov \
+            -format UDZO \
+            "build/Vercel-Menu-Bar-${{ steps.get_version.outputs.VERSION }}.dmg"
+      
+      - name: Sign DMG
+        if: ${{ secrets.DEVELOPER_ID_CERTIFICATE_BASE64 != '' }}
+        run: |
+          codesign --force --sign "Developer ID Application: Ryan Marcus (JM7ZEPER79)" \
+            "build/Vercel-Menu-Bar-${{ steps.get_version.outputs.VERSION }}.dmg"
+      
+      - name: Notarize DMG
+        if: ${{ secrets.APPLE_ID != '' && secrets.APPLE_ID_PASSWORD != '' }}
+        run: |
+          xcrun notarytool submit "build/Vercel-Menu-Bar-${{ steps.get_version.outputs.VERSION }}.dmg" \
+            --keychain-profile "notarization-profile" \
+            --wait
+          
+          # Staple the notarization ticket
+          xcrun stapler staple "build/Vercel-Menu-Bar-${{ steps.get_version.outputs.VERSION }}.dmg"
+      
+      - name: Create ZIP
+        run: |
+          cd build/export
+          zip -r "../Vercel-Menu-Bar-${{ steps.get_version.outputs.VERSION }}.zip" "Vercel Menu Bar.app"
+      
+      - name: Sign update with Sparkle
+        if: ${{ secrets.SPARKLE_PRIVATE_KEY != '' }}
+        env:
+          SPARKLE_PRIVATE_KEY: ${{ secrets.SPARKLE_PRIVATE_KEY }}
+        run: |
+          # Download Sparkle tools
+          curl -L -o sparkle.tar.xz https://github.com/sparkle-project/Sparkle/releases/download/2.6.4/Sparkle-2.6.4.tar.xz
+          mkdir -p sparkle-tools
+          tar -xf sparkle.tar.xz -C sparkle-tools
+          
+          # Sign the ZIP file and get the signature
+          echo "$SPARKLE_PRIVATE_KEY" > /tmp/sparkle_private_key
+          SIGNATURE=$(./sparkle-tools/bin/sign_update "build/Vercel-Menu-Bar-${{ steps.get_version.outputs.VERSION }}.zip" -f /tmp/sparkle_private_key)
+          rm /tmp/sparkle_private_key
+          
+          # Parse signature (format: sparkle:edSignature="..." length="...")
+          ED_SIGNATURE=$(echo "$SIGNATURE" | grep -o 'sparkle:edSignature="[^"]*"' | cut -d'"' -f2)
+          LENGTH=$(echo "$SIGNATURE" | grep -o 'length="[^"]*"' | cut -d'"' -f2)
+          
+          echo "ED_SIGNATURE=$ED_SIGNATURE" >> $GITHUB_ENV
+          echo "LENGTH=$LENGTH" >> $GITHUB_ENV
+      
+      - name: Update appcast.xml
+        if: ${{ env.ED_SIGNATURE != '' }}
+        run: |
+          VERSION="${{ steps.get_version.outputs.VERSION }}"
+          DATE=$(date -u +"%a, %d %b %Y %H:%M:%S %z")
+          
+          # Create the new item entry
+          NEW_ITEM=$(cat <<EOF
+            <item>
+                <title>Version $VERSION</title>
+                <pubDate>$DATE</pubDate>
+                <sparkle:version>$VERSION</sparkle:version>
+                <sparkle:shortVersionString>$VERSION</sparkle:shortVersionString>
+                <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+                <enclosure
+                    url="https://github.com/ryanjmarcus/vercel-menu-bar/releases/download/v$VERSION/Vercel-Menu-Bar-$VERSION.zip"
+                    sparkle:edSignature="$ED_SIGNATURE"
+                    length="$LENGTH"
+                    type="application/octet-stream"/>
+                <sparkle:releaseNotesLink>https://github.com/ryanjmarcus/vercel-menu-bar/releases/tag/v$VERSION</sparkle:releaseNotesLink>
+            </item>
+          EOF
+          )
+          
+          # Insert the new item after the <!-- Updates will be automatically added here --> comment
+          sed -i '' "s|<!-- Updates will be automatically added here by GitHub Actions -->|<!-- Updates will be automatically added here by GitHub Actions -->\n$NEW_ITEM|" docs/appcast.xml
+      
+      - name: Commit appcast.xml update
+        if: ${{ env.ED_SIGNATURE != '' }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add docs/appcast.xml
+          git commit -m "Update appcast.xml for v${{ steps.get_version.outputs.VERSION }}" || echo "No changes to commit"
+          git push origin HEAD:main || echo "Could not push to main"
+      
+      - name: Calculate SHA256 for Homebrew
+        id: sha256
+        run: |
+          SHA256=$(shasum -a 256 "build/Vercel-Menu-Bar-${{ steps.get_version.outputs.VERSION }}.dmg" | cut -d' ' -f1)
+          echo "SHA256=$SHA256" >> $GITHUB_OUTPUT
+      
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          name: Vercel Menu Bar v${{ steps.get_version.outputs.VERSION }}
+          body: |
+            ## Installation
+            
+            ### Download Directly
+            1. Download `Vercel-Menu-Bar-${{ steps.get_version.outputs.VERSION }}.dmg`
+            2. Open the DMG and drag the app to your Applications folder
+            3. Launch the app from Applications
+            
+            ### Using Homebrew
+            ```bash
+            brew install ryanjmarcus/tap/vercel-menu
+            ```
+            
+            ## What's New
+            
+            See the [CHANGELOG](https://github.com/${{ github.repository }}/blob/main/CHANGELOG.md) for details.
+            
+            ---
+            <details>
+            <summary>Homebrew Cask Info</summary>
+            
+            SHA256: `${{ steps.sha256.outputs.SHA256 }}`
+            </details>
+          files: |
+            build/Vercel-Menu-Bar-${{ steps.get_version.outputs.VERSION }}.dmg
+            build/Vercel-Menu-Bar-${{ steps.get_version.outputs.VERSION }}.zip
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Update Homebrew Tap
+        if: ${{ secrets.HOMEBREW_TAP_TOKEN != '' }}
+        env:
+          HOMEBREW_TAP_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+        run: |
+          VERSION="${{ steps.get_version.outputs.VERSION }}"
+          SHA256="${{ steps.sha256.outputs.SHA256 }}"
+          
+          # Clone the tap repository
+          git clone https://x-access-token:${HOMEBREW_TAP_TOKEN}@github.com/ryanjmarcus/homebrew-tap.git /tmp/homebrew-tap || exit 0
+          
+          # Create/update the cask formula
+          mkdir -p /tmp/homebrew-tap/Casks
+          cat > /tmp/homebrew-tap/Casks/vercel-menu.rb << 'CASK_EOF'
+          cask "vercel-menu" do
+            version "VERSION_PLACEHOLDER"
+            sha256 "SHA256_PLACEHOLDER"
+          
+            url "https://github.com/ryanjmarcus/vercel-menu-bar/releases/download/v#{version}/Vercel-Menu-Bar-#{version}.dmg"
+            name "Vercel Menu Bar"
+            desc "Menu bar app for monitoring Vercel deployments"
+            homepage "https://github.com/ryanjmarcus/vercel-menu-bar"
+          
+            depends_on macos: ">= :sonoma"
+          
+            app "Vercel Menu Bar.app"
+          
+            zap trash: [
+              "~/Library/Preferences/com.ryanmarcus.vercel-menu-bar.plist",
+            ]
+          end
+          CASK_EOF
+          
+          # Replace placeholders
+          sed -i '' "s/VERSION_PLACEHOLDER/$VERSION/" /tmp/homebrew-tap/Casks/vercel-menu.rb
+          sed -i '' "s/SHA256_PLACEHOLDER/$SHA256/" /tmp/homebrew-tap/Casks/vercel-menu.rb
+          
+          # Commit and push
+          cd /tmp/homebrew-tap
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add Casks/vercel-menu.rb
+          git commit -m "Update vercel-menu to v$VERSION" || echo "No changes"
+          git push || echo "Could not push to homebrew-tap"
