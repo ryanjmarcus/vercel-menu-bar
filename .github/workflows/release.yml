@@ -291,9 +291,18 @@ jobs:
           SHA256=$(shasum -a 256 "build/Vercel-Menu-Bar-${{ steps.get_version.outputs.VERSION }}.dmg" | cut -d' ' -f1)
           echo "SHA256=$SHA256" >> $GITHUB_OUTPUT
       
+      - name: Create and Push Tag
+        run: |
+          VERSION="${{ steps.get_version.outputs.VERSION }}"
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag -a "v$VERSION" -m "Release v$VERSION" || echo "Tag already exists"
+          git push origin "v$VERSION" || echo "Tag already pushed"
+      
       - name: Create Release
         uses: softprops/action-gh-release@v1
         with:
+          tag_name: v${{ steps.get_version.outputs.VERSION }}
           name: Vercel Menu Bar v${{ steps.get_version.outputs.VERSION }}
           body: |
             ## Installation
