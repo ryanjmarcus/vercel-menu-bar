@@ -245,9 +245,20 @@ class VercelAPI: ObservableObject {
                     environment = .preview
                 }
                 
-                // For now, mark as current if it's the first deployment (we'll enhance this later)
-                // In a real implementation, we'd check against the project's current production deployment
-                let isCurrent = false // TODO: Check against project's current deployment
+                // Determine if this deployment is the "current" one serving production traffic
+                // Check if this deployment matches the project's first latestDeployment (which is the active one)
+                // AND has aliases assigned (meaning it's actually serving traffic)
+                var isCurrent = false
+                if environment == .production,
+                   let projectId = vercelDeploy.projectId,
+                   let project = currentProjects.first(where: { $0.id == projectId }),
+                   let latestDeployments = project.latestDeployments,
+                   let currentDeployment = latestDeployments.first,
+                   let currentDeploymentId = currentDeployment.deploymentId,
+                   currentDeploymentId == vercelDeploy.uid {
+                    // This deployment matches the project's current production deployment
+                    isCurrent = true
+                }
                 
                 // Get domains from project's latestDeployments (v6 list doesn't include alias)
                 var domains: [String] = []
@@ -440,6 +451,18 @@ class VercelAPI: ObservableObject {
                     environment = .preview
                 }
                 
+                // Determine if this deployment is the "current" one serving production traffic
+                var isCurrent = false
+                if environment == .production,
+                   let projectId = vercelDeploy.projectId,
+                   let project = currentProjects.first(where: { $0.id == projectId }),
+                   let latestDeployments = project.latestDeployments,
+                   let currentDeployment = latestDeployments.first,
+                   let currentDeploymentId = currentDeployment.deploymentId,
+                   currentDeploymentId == vercelDeploy.uid {
+                    isCurrent = true
+                }
+                
                 // Get domains from project's latestDeployments (v6 list doesn't include alias)
                 var domains: [String] = []
                 if let projectId = vercelDeploy.projectId,
@@ -476,7 +499,7 @@ class VercelAPI: ObservableObject {
                     githubOrg: githubOrg,
                     githubRepo: githubRepo,
                     environment: environment,
-                    isCurrent: false,
+                    isCurrent: isCurrent,
                     isPromoted: isPromoted
                 )
             }

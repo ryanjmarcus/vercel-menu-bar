@@ -43,11 +43,7 @@ struct DeploymentRow: View {
                         }
                         
                         if deployment.isCurrent {
-                            CurrentBadge()
-                        } else {
-                            Image(systemName: "clock")
-                                .font(.system(size: 10))
-                                .foregroundColor(.vercelSecondaryText)
+                            CurrentPillSmall()
                         }
                     }
                 }
@@ -362,6 +358,25 @@ private struct CurrentPill: View {
             .cornerRadius(12)
             .overlay(
                 RoundedRectangle(cornerRadius: 12)
+                    .stroke(Color(hex: "0070f3").opacity(0.15), lineWidth: 1)
+            )
+    }
+}
+
+// MARK: - Current Pill Small
+
+/// A smaller version of CurrentPill for deployment rows
+private struct CurrentPillSmall: View {
+    var body: some View {
+        Text("Current")
+            .font(.system(size: 9, weight: .medium))
+            .foregroundColor(Color(hex: "3291ff"))
+            .padding(.horizontal, 5)
+            .padding(.vertical, 1.5)
+            .background(Color(hex: "0070f3").opacity(0.1))
+            .cornerRadius(10)
+            .overlay(
+                RoundedRectangle(cornerRadius: 10)
                     .stroke(Color(hex: "0070f3").opacity(0.15), lineWidth: 1)
             )
     }
