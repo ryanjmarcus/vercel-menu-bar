@@ -82,6 +82,7 @@ struct DeploymentRow: View {
                             .font(.vercelMono)
                             .foregroundColor(.vercelSecondaryText)
                             .lineLimit(1)
+                            .truncationMode(.tail)
                     }
                     
                     HStack(spacing: 4) {
@@ -92,7 +93,9 @@ struct DeploymentRow: View {
                             .lineLimit(1)
                     }
                 }
-                .frame(maxWidth: .infinity, alignment: .leading)
+                .frame(width: 110, alignment: .leading)
+                
+                Spacer()
                 
                 // Chevron
                 Image(systemName: "chevron.right")

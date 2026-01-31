@@ -52,13 +52,12 @@ struct OverviewSection: View {
                 Text("Recent")
                     .font(.vercelCaption)
                     .foregroundColor(.vercelSecondaryText)
-                    
 
                 Spacer()
                 
                 ExternalLinkButton("Open in Vercel", urlString: projectURL)
             }
-            .padding(.top, -2)
+            .padding(.top, -1.5)
             
             DeploymentCard(deployment: deployment)
         }
