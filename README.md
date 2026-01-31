@@ -118,6 +118,12 @@ vercel-menu-bar/
 - **URLSession** - Networking
 - **Sparkle** - Automatic updates
 
+## A Note on Development
+
+This app was built with a lot of help from AI — it handled most of the logic and core functionality, while I focused on making the UI feel as close to Vercel's design system as possible.
+
+Testing every possible deployment status, environment type, and edge case has been tricky, so if you run into something that looks off or isn't handled correctly, please open an issue or PR! I'd love the help.
+
 ## Contributing
 
 Contributions are welcome! Please feel free to submit a Pull Request.
@@ -136,3 +142,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 - [Vercel](https://vercel.com) for the excellent deployment platform and API
 - [Geist](https://vercel.com/geist) design system for inspiration
+
+---
+
+*Hey Vercel team, if you're reading this — feel free to take it from here.*
