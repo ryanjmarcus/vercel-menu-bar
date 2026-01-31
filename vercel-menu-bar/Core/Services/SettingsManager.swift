@@ -51,7 +51,7 @@ class SettingsManager: ObservableObject {
     @Published var apiKey: String {
         didSet {
             if apiKey.isEmpty {
-                KeychainManager.shared.delete(forKey: apiKeyKey)
+                _ = KeychainManager.shared.delete(forKey: apiKeyKey)
                 UserDefaults.standard.set(false, forKey: hasSavedTokenKey)
             } else {
                 _ = KeychainManager.shared.save(apiKey, forKey: apiKeyKey)

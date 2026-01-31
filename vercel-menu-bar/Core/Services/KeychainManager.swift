@@ -25,7 +25,7 @@ class KeychainManager {
         }
         
         // Delete existing item if it exists
-        delete(forKey: key)
+        _ = delete(forKey: key)
         
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
@@ -89,13 +89,12 @@ class KeychainManager {
         
         // errSecSuccess: item exists and access granted
         // errSecItemNotFound: item doesn't exist, but access was granted (prompt shown and allowed)
-        // errSecUserCancel: user cancelled the keychain access prompt
         // errSecAuthFailed: authentication failed (user denied access)
         switch status {
         case errSecSuccess, errSecItemNotFound:
             // Access granted (item may or may not exist, but we have permission)
             return true
-        case errSecUserCancel, errSecAuthFailed:
+        case errSecAuthFailed:
             // User explicitly denied access
             return false
         default:
