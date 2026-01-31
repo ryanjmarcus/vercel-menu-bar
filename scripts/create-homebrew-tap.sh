@@ -90,6 +90,10 @@ cask "vercel-menu-bar" do
   depends_on macos: ">= :sonoma"
 
   app "Vercel Menu Bar.app"
+  
+  postflight do
+    system_command "/usr/bin/open", args: ["-a", "Vercel Menu Bar"]
+  end
 
   zap trash: [
     "~/Library/Preferences/com.ryanmarcus.vercel-menu-bar.plist",
