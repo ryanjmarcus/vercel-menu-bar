@@ -19,6 +19,7 @@ A native macOS menu bar app for monitoring your Vercel deployments.
 ## Screenshots
 
 ![Vercel Menu Bar Screenshot](docs/screenshot.png)
+![Vercel Menu Bar Settings](docs/screenshot-settings.png)
 
 ![Vercel Menu Bar Demo](docs/demo.gif)
 

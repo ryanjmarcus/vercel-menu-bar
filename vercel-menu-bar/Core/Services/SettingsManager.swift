@@ -18,7 +18,7 @@ enum WindowSize: String, CaseIterable {
     
     var height: CGFloat {
         switch self {
-        case .compact: return 450
+        case .compact: return 452
         case .default: return 556
         case .tall: return 700
         }
