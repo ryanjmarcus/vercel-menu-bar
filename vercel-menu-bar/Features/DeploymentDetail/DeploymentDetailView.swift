@@ -165,9 +165,11 @@ struct DeploymentDetailView: View {
                         .foregroundColor(.vercelPrimaryText)
                         .lineLimit(1)
                     
-                    Text(deployment.relativeTime)
-                        .font(.vercelBody)
-                        .foregroundColor(.vercelSecondaryText)
+                    LiveRelativeTimeView(
+                        deployment: deployment,
+                        font: .vercelBody,
+                        color: .vercelSecondaryText
+                    )
                 }
             }
             .padding(.leading, 12)

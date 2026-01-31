@@ -194,6 +194,85 @@ struct LiveDurationView: View {
     }
 }
 
+// MARK: - Live Relative Time View
+
+/// Shows relative time - either static for completed deployments or live counting for building
+struct LiveRelativeTimeView: View {
+    let deployment: Deployment
+    let font: Font
+    let color: Color
+    
+    @State private var elapsedSeconds: Int = 0
+    @State private var timer: Timer?
+    
+    init(
+        deployment: Deployment,
+        font: Font = .vercelBody,
+        color: Color = .vercelSecondaryText
+    ) {
+        self.deployment = deployment
+        self.font = font
+        self.color = color
+    }
+    
+    private var isBuilding: Bool {
+        deployment.status == .building || deployment.status == .queued
+    }
+    
+    private var displayText: String {
+        if isBuilding {
+            // Live counter for building deployments
+            if elapsedSeconds < 60 {
+                return "\(elapsedSeconds)s ago"
+            } else {
+                let minutes = elapsedSeconds / 60
+                return "\(minutes)m ago"
+            }
+        } else {
+            // Use standard relative time formatter for completed
+            return deployment.relativeTime
+        }
+    }
+    
+    var body: some View {
+        Text(displayText)
+            .font(font)
+            .foregroundColor(color)
+            .onAppear {
+                if isBuilding {
+                    startTimer()
+                }
+            }
+            .onDisappear {
+                stopTimer()
+            }
+            .onChange(of: deployment.status) { _, newStatus in
+                if newStatus == .building || newStatus == .queued {
+                    startTimer()
+                } else {
+                    stopTimer()
+                }
+            }
+    }
+    
+    private func startTimer() {
+        updateElapsedTime()
+        timer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { _ in
+            updateElapsedTime()
+        }
+    }
+    
+    private func stopTimer() {
+        timer?.invalidate()
+        timer = nil
+    }
+    
+    private func updateElapsedTime() {
+        let elapsed = Date().timeIntervalSince(deployment.createdAt)
+        elapsedSeconds = max(0, Int(elapsed))
+    }
+}
+
 // MARK: - Previews
 
 #Preview("Geist Spinner") {
