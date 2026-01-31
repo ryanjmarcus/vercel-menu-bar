@@ -7,13 +7,13 @@
 	objects = {
 
 /* Begin PBXFileReference section */
-		568F31FF2F2AB366005DD5AE /* vercel-menu.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "vercel-menu.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		568F31FF2F2AB366005DD5AE /* vercel-menu-bar.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "vercel-menu-bar.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
-		568F32012F2AB366005DD5AE /* vercel-menu */ = {
+		568F32012F2AB366005DD5AE /* vercel-menu-bar */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			path = "vercel-menu";
+			path = "vercel-menu-bar";
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
@@ -32,7 +32,7 @@
 		568F31F62F2AB366005DD5AE = {
 			isa = PBXGroup;
 			children = (
-				568F32012F2AB366005DD5AE /* vercel-menu */,
+				568F32012F2AB366005DD5AE /* vercel-menu-bar */,
 				568F32002F2AB366005DD5AE /* Products */,
 			);
 			sourceTree = "<group>";
@@ -40,7 +40,7 @@
 		568F32002F2AB366005DD5AE /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				568F31FF2F2AB366005DD5AE /* vercel-menu.app */,
+				568F31FF2F2AB366005DD5AE /* vercel-menu-bar.app */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -48,9 +48,9 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		568F31FE2F2AB366005DD5AE /* vercel-menu */ = {
+		568F31FE2F2AB366005DD5AE /* vercel-menu-bar */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 568F320A2F2AB367005DD5AE /* Build configuration list for PBXNativeTarget "vercel-menu" */;
+			buildConfigurationList = 568F320A2F2AB367005DD5AE /* Build configuration list for PBXNativeTarget "vercel-menu-bar" */;
 			buildPhases = (
 				568F31FB2F2AB366005DD5AE /* Sources */,
 				568F31FC2F2AB366005DD5AE /* Frameworks */,
@@ -61,13 +61,13 @@
 			dependencies = (
 			);
 			fileSystemSynchronizedGroups = (
-				568F32012F2AB366005DD5AE /* vercel-menu */,
+				568F32012F2AB366005DD5AE /* vercel-menu-bar */,
 			);
-			name = "vercel-menu";
+			name = "vercel-menu-bar";
 			packageProductDependencies = (
 			);
-			productName = "vercel-menu";
-			productReference = 568F31FF2F2AB366005DD5AE /* vercel-menu.app */;
+			productName = "vercel-menu-bar";
+			productReference = 568F31FF2F2AB366005DD5AE /* vercel-menu-bar.app */;
 			productType = "com.apple.product-type.application";
 		};
 /* End PBXNativeTarget section */
@@ -85,7 +85,7 @@
 					};
 				};
 			};
-			buildConfigurationList = 568F31FA2F2AB366005DD5AE /* Build configuration list for PBXProject "vercel-menu" */;
+			buildConfigurationList = 568F31FA2F2AB366005DD5AE /* Build configuration list for PBXProject "vercel-menu-bar" */;
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
 			knownRegions = (
@@ -99,7 +99,7 @@
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				568F31FE2F2AB366005DD5AE /* vercel-menu */,
+				568F31FE2F2AB366005DD5AE /* vercel-menu-bar */,
 			);
 		};
 /* End PBXProject section */
@@ -250,6 +250,8 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
+				CODE_SIGN_ENTITLEMENTS = "vercel-menu-bar/vercel-menu-bar.entitlements";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 1;
@@ -259,13 +261,15 @@
 				ENABLE_PREVIEWS = YES;
 				ENABLE_USER_SELECTED_FILES = readonly;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_ATSApplicationFontsPath = Fonts;
+				INFOPLIST_KEY_LSUIElement = YES;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = "com.ryanmarcus.vercel-menu";
+				PRODUCT_BUNDLE_IDENTIFIER = "com.ryanmarcus.vercel-menu-bar";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				REGISTER_APP_GROUPS = YES;
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
@@ -281,6 +285,8 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
+				CODE_SIGN_ENTITLEMENTS = "vercel-menu-bar/vercel-menu-bar.entitlements";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 1;
@@ -290,13 +296,15 @@
 				ENABLE_PREVIEWS = YES;
 				ENABLE_USER_SELECTED_FILES = readonly;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_ATSApplicationFontsPath = Fonts;
+				INFOPLIST_KEY_LSUIElement = YES;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = "com.ryanmarcus.vercel-menu";
+				PRODUCT_BUNDLE_IDENTIFIER = "com.ryanmarcus.vercel-menu-bar";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				REGISTER_APP_GROUPS = YES;
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
@@ -310,7 +318,7 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		568F31FA2F2AB366005DD5AE /* Build configuration list for PBXProject "vercel-menu" */ = {
+		568F31FA2F2AB366005DD5AE /* Build configuration list for PBXProject "vercel-menu-bar" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				568F32082F2AB367005DD5AE /* Debug */,
@@ -319,7 +327,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		568F320A2F2AB367005DD5AE /* Build configuration list for PBXNativeTarget "vercel-menu" */ = {
+		568F320A2F2AB367005DD5AE /* Build configuration list for PBXNativeTarget "vercel-menu-bar" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				568F320B2F2AB367005DD5AE /* Debug */,
