@@ -30,7 +30,7 @@ A native macOS menu bar app for monitoring your Vercel deployments.
 ### Using Homebrew (Recommended)
 
 ```bash
-brew install ryanjmarcus/tap/vercel-menu
+brew install ryanjmarcus/tap/vercel-menu-bar
 ```
 
 ### Download Directly
