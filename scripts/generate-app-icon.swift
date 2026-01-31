@@ -47,7 +47,7 @@ struct AppIconView: View {
     let size: CGFloat
     
     // Proportions matching MenuBarIconView
-    private var triangleSize: CGFloat { size * 0.45 }
+    private var triangleSize: CGFloat { size * 0.40 }
     private var dotSize: CGFloat { size * 0.14 }
     private var cornerRadius: CGFloat { size * 0.22 }
     
