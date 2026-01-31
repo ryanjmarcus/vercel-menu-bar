@@ -88,9 +88,17 @@ jobs:
       
       - name: Build and Sign App
         env:
-          SIGNING_IDENTITY: ${{ secrets.DEVELOPER_ID_CERTIFICATE_BASE64 != '' && 'Developer ID Application: Ryan Marcus (JM7ZEPER79)' || '-' }}
-          CODE_SIGNING_REQUIRED: ${{ secrets.DEVELOPER_ID_CERTIFICATE_BASE64 != '' && 'YES' || 'NO' }}
+          HAS_CERTIFICATE: ${{ secrets.DEVELOPER_ID_CERTIFICATE_BASE64 }}
         run: |
+          # Set signing identity based on whether certificate is available
+          if [ -n "$HAS_CERTIFICATE" ]; then
+            SIGNING_IDENTITY="Developer ID Application: Ryan Marcus (JM7ZEPER79)"
+            CODE_SIGNING_REQUIRED="YES"
+          else
+            SIGNING_IDENTITY="-"
+            CODE_SIGNING_REQUIRED="NO"
+          fi
+          
           # Build the archive
           xcodebuild archive \
             -project vercel-menu-bar.xcodeproj \
