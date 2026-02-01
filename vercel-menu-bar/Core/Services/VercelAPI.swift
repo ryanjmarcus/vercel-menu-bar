@@ -175,7 +175,8 @@ class VercelAPI: ObservableObject {
             // Capture projects for domain lookup
             let currentProjects = await MainActor.run { self.projects }
             
-            let mappedDeployments = apiResponse.deployments.map { vercelDeploy -> Deployment in
+            // First pass: map all deployments without isCurrent flag
+            let mappedDeployments = apiResponse.deployments.map { vercelDeploy -> (VercelDeployment, DeploymentEnvironment, DeploymentStatus) in
                 // Map state
                 let status: DeploymentStatus
                 switch (vercelDeploy.readyState ?? vercelDeploy.state ?? "").uppercased() {
@@ -193,6 +194,29 @@ class VercelAPI: ObservableObject {
                     status = .ready
                 }
                 
+                // Determine environment from target field
+                let environment: DeploymentEnvironment
+                if let target = vercelDeploy.target {
+                    switch target.lowercased() {
+                    case "production":
+                        environment = .production
+                    case "preview":
+                        environment = .preview
+                    default:
+                        environment = .preview
+                    }
+                } else {
+                    environment = .preview
+                }
+                
+                return (vercelDeploy, environment, status)
+            }
+            
+            // Find the current deployment: first production deployment that's ready
+            let currentDeploymentId = mappedDeployments.first(where: { $0.1 == .production && $0.2 == .ready })?.0.uid
+            
+            // Second pass: build Deployment objects with isCurrent flag
+            let finalDeployments = mappedDeployments.map { vercelDeploy, environment, status -> Deployment in
                 // Get commit info from meta
                 let commitSha = vercelDeploy.meta?.githubCommitSha 
                     ?? vercelDeploy.meta?.gitlabCommitSha 
@@ -229,36 +253,9 @@ class VercelAPI: ObservableObject {
                 // Extract project name from deployment name
                 let projectName = vercelDeploy.name.components(separatedBy: "-").first ?? vercelDeploy.name
                 
-                // Determine environment from target field
-                let environment: DeploymentEnvironment
-                if let target = vercelDeploy.target {
-                    switch target.lowercased() {
-                    case "production":
-                        environment = .production
-                    case "preview":
-                        environment = .preview
-                    default:
-                        environment = .preview // Default to preview for non-production
-                    }
-                } else {
-                    // If no target, assume preview (most deployments are previews)
-                    environment = .preview
-                }
-                
-                // Determine if this deployment is the "current" one serving production traffic
-                // Check if this deployment matches the project's first latestDeployment (which is the active one)
-                // AND has aliases assigned (meaning it's actually serving traffic)
-                var isCurrent = false
-                if environment == .production,
-                   let projectId = vercelDeploy.projectId,
-                   let project = currentProjects.first(where: { $0.id == projectId }),
-                   let latestDeployments = project.latestDeployments,
-                   let currentDeployment = latestDeployments.first,
-                   let currentDeploymentId = currentDeployment.deploymentId,
-                   currentDeploymentId == vercelDeploy.uid {
-                    // This deployment matches the project's current production deployment
-                    isCurrent = true
-                }
+                // Determine if this deployment is the "current" one
+                // Use fresh deployment data instead of stale project.latestDeployments
+                let isCurrent = vercelDeploy.uid == currentDeploymentId
                 
                 // Get domains from project's latestDeployments (v6 list doesn't include alias)
                 var domains: [String] = []
@@ -302,7 +299,7 @@ class VercelAPI: ObservableObject {
             }
             
             await MainActor.run {
-                self.deployments = mappedDeployments
+                self.deployments = finalDeployments
                 self.isLoading = false
                 // Use pagination.next directly as the cursor for next page
                 self.lastDeploymentTimestamp = apiResponse.pagination?.next
@@ -379,8 +376,10 @@ class VercelAPI: ObservableObject {
             let decoder = JSONDecoder()
             let apiResponse = try decoder.decode(VercelDeploymentsResponse.self, from: data)
             
-            // Capture projects for domain lookup
+            // Capture projects and existing deployments for domain lookup and current check
             let currentProjects = await MainActor.run { self.projects }
+            let existingDeployments = await MainActor.run { self.deployments }
+            let currentDeploymentId = existingDeployments.first(where: { $0.isCurrent })?.id
             
             let mappedDeployments = apiResponse.deployments.map { vercelDeploy -> Deployment in
                 // Map state
@@ -451,17 +450,9 @@ class VercelAPI: ObservableObject {
                     environment = .preview
                 }
                 
-                // Determine if this deployment is the "current" one serving production traffic
-                var isCurrent = false
-                if environment == .production,
-                   let projectId = vercelDeploy.projectId,
-                   let project = currentProjects.first(where: { $0.id == projectId }),
-                   let latestDeployments = project.latestDeployments,
-                   let currentDeployment = latestDeployments.first,
-                   let currentDeploymentId = currentDeployment.deploymentId,
-                   currentDeploymentId == vercelDeploy.uid {
-                    isCurrent = true
-                }
+                // For loadMore, check if this matches the current deployment from existing list
+                // (loadMore loads older deployments, so they shouldn't be current unless they match existing)
+                let isCurrent = vercelDeploy.uid == currentDeploymentId
                 
                 // Get domains from project's latestDeployments (v6 list doesn't include alias)
                 var domains: [String] = []
