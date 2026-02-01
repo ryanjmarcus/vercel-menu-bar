@@ -105,6 +105,9 @@ struct MenuBarView: View {
                         projectId: settings.selectedProjectId
                     )
                     
+                    // Force retry of any failed favicon fetches
+                    FaviconCache.shared.invalidateFailures()
+                    
                     // Update cached favicon URL using the fresh deployment ID
                     if let latestDeployment = api.deployments.first,
                        let project = api.projects.first(where: { $0.id == settings.selectedProjectId }),
@@ -150,6 +153,8 @@ struct MenuBarView: View {
                 apiKey: settings.apiKey,
                 projectId: settings.selectedProjectId
             )
+            // Force retry of any failed favicon fetches
+            FaviconCache.shared.invalidateFailures()
         }
     }
     
@@ -189,6 +194,8 @@ struct MenuBarView: View {
                             apiKey: apiKey,
                             projectId: projectId
                         )
+                        // Force retry of any failed favicon fetches
+                        FaviconCache.shared.invalidateFailures()
                     }
                 }
             }

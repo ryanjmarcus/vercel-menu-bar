@@ -16,6 +16,9 @@ final class FaviconCache {
     
     private let cache = NSCache<NSURL, NSImage>()
     
+    /// Token that changes when failures should be retried
+    private(set) var refreshToken: UUID = UUID()
+    
     private init() {
         cache.countLimit = 50 // Max 50 images
     }
@@ -27,9 +30,22 @@ final class FaviconCache {
     func set(_ image: NSImage, for url: URL) {
         cache.setObject(image, forKey: url as NSURL)
     }
+    
+    /// Call to force all favicons to retry loading (e.g., after deployment refresh)
+    func invalidateFailures() {
+        refreshToken = UUID()
+    }
 }
 
 // MARK: - Async Favicon
+
+/// Load state for favicon fetching
+private enum FaviconLoadState {
+    case idle       // Not yet attempted
+    case loading    // Fetch in progress
+    case loaded     // Successfully loaded image
+    case failed     // Fetch failed (404, error, etc.)
+}
 
 /// A unified favicon component that loads images asynchronously with caching
 struct AsyncFavicon: View {
@@ -39,6 +55,7 @@ struct AsyncFavicon: View {
     let showFallback: Bool
     
     @State private var displayImage: NSImage?
+    @State private var loadState: FaviconLoadState = .idle
     
     /// Creates an async favicon with configurable size
     /// - Parameters:
@@ -61,9 +78,14 @@ struct AsyncFavicon: View {
             .onAppear {
                 loadFromCache()
             }
-            .task(id: url) {
+            .task(id: taskId) {
                 await loadImage()
             }
+    }
+    
+    /// Combine url + refreshToken so task re-runs on refresh
+    private var taskId: String {
+        "\(url?.absoluteString ?? "")-\(FaviconCache.shared.refreshToken)"
     }
     
     @ViewBuilder
@@ -72,11 +94,12 @@ struct AsyncFavicon: View {
             Image(nsImage: image)
                 .resizable()
                 .aspectRatio(contentMode: .fit)
-        } else if showFallback {
+        } else if showFallback || loadState == .failed {
+            // Show fallback if explicitly requested OR if load failed
             VercelTriangleIcon()
                 .foregroundColor(.vercelSecondaryText)
         } else {
-            // Invisible rectangle that takes up exact space
+            // Loading in progress - invisible space to prevent flicker
             Rectangle()
                 .fill(Color.clear)
         }
@@ -87,21 +110,26 @@ struct AsyncFavicon: View {
         guard let url = url else { return }
         if let cached = FaviconCache.shared.get(url) {
             displayImage = cached
+            loadState = .loaded
         }
     }
     
     /// Load image from network (async)
     private func loadImage() async {
         guard let url = url else {
+            loadState = .failed
             displayImage = nil
             return
         }
         
         // Check cache first
         if let cached = FaviconCache.shared.get(url) {
+            loadState = .loaded
             displayImage = cached
             return
         }
+        
+        loadState = .loading
         
         // Fetch from network
         do {
@@ -112,18 +140,20 @@ struct AsyncFavicon: View {
             
             // Check HTTP status code - only accept 200 responses
             guard let httpResponse = response as? HTTPURLResponse,
-                  httpResponse.statusCode == 200 else {
+                  httpResponse.statusCode == 200,
+                  data.count > 0,
+                  let image = NSImage(data: data),
+                  image.size.width > 0, image.size.height > 0 else {
+                loadState = .failed
                 return
             }
             
-            // Try to create an NSImage
-            if data.count > 0, let image = NSImage(data: data), image.size.width > 0, image.size.height > 0 {
-                // Cache it
-                FaviconCache.shared.set(image, for: url)
-                displayImage = image
-            }
+            // Cache it
+            FaviconCache.shared.set(image, for: url)
+            loadState = .loaded
+            displayImage = image
         } catch {
-            // Silently fail - keep showing whatever we have (cached or triangle)
+            loadState = .failed
         }
     }
 }
