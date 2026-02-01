@@ -78,6 +78,20 @@ struct AsyncFavicon: View {
             .onAppear {
                 loadFromCache()
             }
+            .onChange(of: url) { oldURL, newURL in
+                // Reset state when URL changes to prevent showing stale image
+                if oldURL != newURL {
+                    displayImage = nil
+                    loadState = .idle
+                    // Load from cache for new URL immediately
+                    if let newURL = newURL {
+                        if let cached = FaviconCache.shared.get(newURL) {
+                            displayImage = cached
+                            loadState = .loaded
+                        }
+                    }
+                }
+            }
             .task(id: taskId) {
                 await loadImage()
             }
@@ -129,18 +143,44 @@ struct AsyncFavicon: View {
             return
         }
         
+        // Reset to loading state at start of each network fetch attempt
+        // This ensures retries (via refreshToken change) start fresh
         loadState = .loading
         
-        // Fetch from network
+        // Fetch from network with browser-like headers
+        // Vercel's API may require User-Agent to serve favicons
         do {
             var request = URLRequest(url: url)
             request.cachePolicy = .reloadIgnoringLocalCacheData
+            request.setValue("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36", forHTTPHeaderField: "User-Agent")
+            request.setValue("image/*,*/*;q=0.8", forHTTPHeaderField: "Accept")
             
             let (data, response) = try await URLSession.shared.data(for: request)
             
             // Check HTTP status code - only accept 200 responses
-            guard let httpResponse = response as? HTTPURLResponse,
-                  httpResponse.statusCode == 200,
+            guard let httpResponse = response as? HTTPURLResponse else {
+                loadState = .failed
+                return
+            }
+            
+            // For 404s, retry once after a delay (favicon might take a few seconds to generate)
+            if httpResponse.statusCode == 404 {
+                try await Task.sleep(nanoseconds: 2_000_000_000) // 2 second delay
+                
+                let (retryData, retryResponse) = try await URLSession.shared.data(for: request)
+                if let retryHttpResponse = retryResponse as? HTTPURLResponse,
+                   retryHttpResponse.statusCode == 200,
+                   retryData.count > 0,
+                   let retryImage = NSImage(data: retryData),
+                   retryImage.size.width > 0, retryImage.size.height > 0 {
+                    FaviconCache.shared.set(retryImage, for: url)
+                    loadState = .loaded
+                    displayImage = retryImage
+                    return
+                }
+            }
+            
+            guard httpResponse.statusCode == 200,
                   data.count > 0,
                   let image = NSImage(data: data),
                   image.size.width > 0, image.size.height > 0 else {
@@ -148,7 +188,6 @@ struct AsyncFavicon: View {
                 return
             }
             
-            // Cache it
             FaviconCache.shared.set(image, for: url)
             loadState = .loaded
             displayImage = image

@@ -218,15 +218,34 @@ struct MenuBarView: View {
     }
     
     private var currentFaviconURL: URL? {
-        // Only use fresh deployment data to build favicon URL
-        // This avoids 404 errors from stale deployment IDs
-        // Use first READY deployment - building deployments don't have favicons yet
-        guard let latestReadyDeployment = api.deployments.first(where: { $0.status == .ready }),
-              let project = api.projects.first(where: { $0.id == settings.selectedProjectId }) else {
-            // Return nil until we have fresh data - triangle will show briefly
-            return nil
+        // Use stored favicon as fallback while data loads
+        guard !api.projects.isEmpty, !api.deployments.isEmpty else {
+            return settings.faviconURL
         }
-        return faviconURL(forDeploymentId: latestReadyDeployment.id, project: project)
+        
+        guard let project = api.projects.first(where: { $0.id == settings.selectedProjectId }) else {
+            return settings.faviconURL
+        }
+        
+        // Use current deployment's favicon
+        if let currentDeployment = api.deployments.first(where: { $0.isCurrent }),
+           let url = faviconURL(forDeploymentId: currentDeployment.id, project: project) {
+            return url
+        }
+        
+        // Fallback to first ready production deployment
+        if let prodDeployment = api.deployments.first(where: { $0.status == .ready && $0.environment == .production }),
+           let url = faviconURL(forDeploymentId: prodDeployment.id, project: project) {
+            return url
+        }
+        
+        // Last resort: any ready deployment
+        if let readyDeployment = api.deployments.first(where: { $0.status == .ready }),
+           let url = faviconURL(forDeploymentId: readyDeployment.id, project: project) {
+            return url
+        }
+        
+        return nil
     }
     
     /// Build favicon URL using a specific deployment ID
