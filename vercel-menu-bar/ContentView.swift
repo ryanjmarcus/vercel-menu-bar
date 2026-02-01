@@ -63,7 +63,7 @@ struct MenuBarView: View {
                 .transition(.move(edge: .trailing).combined(with: .opacity))
             }
         }
-        .frame(width: 380, height: 556)
+        .frame(width: 380, height: settings.windowSize.height)
         .animation(.easeInOut(duration: 0.2), value: viewStateKey)
         .onChange(of: api.isLoading) { oldValue, newValue in
             if newValue {
