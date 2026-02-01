@@ -108,10 +108,10 @@ struct MenuBarView: View {
                     // Force retry of any failed favicon fetches
                     FaviconCache.shared.invalidateFailures()
                     
-                    // Update cached favicon URL using the fresh deployment ID
-                    if let latestDeployment = api.deployments.first,
+                    // Update cached favicon URL using the first ready deployment ID
+                    if let latestReadyDeployment = api.deployments.first(where: { $0.status == .ready }),
                        let project = api.projects.first(where: { $0.id == settings.selectedProjectId }),
-                       let url = faviconURL(forDeploymentId: latestDeployment.id, project: project) {
+                       let url = faviconURL(forDeploymentId: latestReadyDeployment.id, project: project) {
                         settings.selectedProjectFaviconURL = url.absoluteString
                     }
                 }
@@ -220,12 +220,13 @@ struct MenuBarView: View {
     private var currentFaviconURL: URL? {
         // Only use fresh deployment data to build favicon URL
         // This avoids 404 errors from stale deployment IDs
-        guard let latestDeployment = api.deployments.first,
+        // Use first READY deployment - building deployments don't have favicons yet
+        guard let latestReadyDeployment = api.deployments.first(where: { $0.status == .ready }),
               let project = api.projects.first(where: { $0.id == settings.selectedProjectId }) else {
             // Return nil until we have fresh data - triangle will show briefly
             return nil
         }
-        return faviconURL(forDeploymentId: latestDeployment.id, project: project)
+        return faviconURL(forDeploymentId: latestReadyDeployment.id, project: project)
     }
     
     /// Build favicon URL using a specific deployment ID
