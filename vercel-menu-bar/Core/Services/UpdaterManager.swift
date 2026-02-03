@@ -20,11 +20,20 @@ final class UpdaterManager: NSObject, ObservableObject, SPUUpdaterDelegate {
     @Published var updateAvailable = false
     @Published var canCheckForUpdates = false
     
+    /// Whether the app was installed via Homebrew Cask
+    let isHomebrewInstall: Bool
+    
+    /// The brew command to update the app
+    static let brewUpdateCommand = "brew upgrade --cask vercel-menu-bar"
+    
     private var cancellables = Set<AnyCancellable>()
     private var lastCheckTime: Date?
     private let checkCooldown: TimeInterval = 3600  // 1 hour
     
     private override init() {
+        // Detect Homebrew install before calling super.init()
+        self.isHomebrewInstall = Self.detectHomebrewInstall()
+        
         super.init()
         
         // Create user driver and updater with self as delegate
@@ -84,5 +93,35 @@ final class UpdaterManager: NSObject, ObservableObject, SPUUpdaterDelegate {
         DispatchQueue.main.async {
             self.updateAvailable = false
         }
+    }
+    
+    // MARK: - Homebrew Detection
+    
+    /// Detects if the app was installed via Homebrew Cask
+    private static func detectHomebrewInstall() -> Bool {
+        let appPath = Bundle.main.bundlePath
+        
+        // Check if running directly from Homebrew's Caskroom
+        if appPath.contains("/Caskroom/") || appPath.contains("/homebrew/") {
+            return true
+        }
+        
+        // Check if /Applications/Vercel Menu Bar.app is a symlink to Homebrew
+        let applicationsPath = "/Applications/Vercel Menu Bar.app"
+        let fm = FileManager.default
+        
+        // Check if the path is a symlink
+        guard let attrs = try? fm.attributesOfItem(atPath: applicationsPath),
+              let fileType = attrs[.type] as? FileAttributeType,
+              fileType == .typeSymbolicLink else {
+            return false
+        }
+        
+        // Check if symlink points to Homebrew
+        if let destination = try? fm.destinationOfSymbolicLink(atPath: applicationsPath) {
+            return destination.contains("Caskroom") || destination.contains("homebrew")
+        }
+        
+        return false
     }
 }

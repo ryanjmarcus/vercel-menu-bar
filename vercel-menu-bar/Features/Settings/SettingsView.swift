@@ -19,6 +19,8 @@ struct SettingsView: View {
     @State private var hasAppliedInitialFocus: Bool = false
     @State private var isGitHubHovered: Bool = false
     @State private var isUpdateHovered: Bool = false
+    @State private var showHomebrewPopover: Bool = false
+    @State private var copiedToClipboard: Bool = false
     
     let onBack: () -> Void
     let onSave: () -> Void
@@ -96,7 +98,11 @@ struct SettingsView: View {
                 .foregroundColor(.vercelSecondaryText.opacity(0.5))
             
             Button(action: {
-                updaterManager.checkForUpdates()
+                if updaterManager.isHomebrewInstall && updaterManager.updateAvailable {
+                    showHomebrewPopover = true
+                } else {
+                    updaterManager.checkForUpdates()
+                }
             }) {
                 HStack(spacing: 4) {
                     if updaterManager.updateAvailable {
@@ -121,9 +127,69 @@ struct SettingsView: View {
                     NSCursor.pop()
                 }
             }
+            .popover(isPresented: $showHomebrewPopover, arrowEdge: .top) {
+                homebrewUpdatePopover
+            }
         }
         .frame(maxWidth: .infinity)
         .padding(.top, 2)
+    }
+    
+    // MARK: - Homebrew Update Popover
+    
+    private var homebrewUpdatePopover: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("Update via Homebrew")
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundColor(.vercelPrimaryText)
+            
+            Text("This app was installed via Homebrew. Run this command to update:")
+                .font(.system(size: 11))
+                .foregroundColor(.vercelSecondaryText)
+                .fixedSize(horizontal: false, vertical: true)
+            
+            HStack(spacing: 8) {
+                Text(UpdaterManager.brewUpdateCommand)
+                    .font(.system(size: 11, design: .monospaced))
+                    .foregroundColor(.vercelPrimaryText)
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 8)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .background(Color.vercelBackground)
+                    .cornerRadius(4)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 4)
+                            .stroke(Color.vercelBorder, lineWidth: 1)
+                    )
+                
+                Button(action: {
+                    NSPasteboard.general.clearContents()
+                    NSPasteboard.general.setString(UpdaterManager.brewUpdateCommand, forType: .string)
+                    copiedToClipboard = true
+                    
+                    // Reset after 2 seconds
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+                        copiedToClipboard = false
+                    }
+                }) {
+                    Image(systemName: copiedToClipboard ? "checkmark" : "doc.on.clipboard")
+                        .font(.system(size: 12))
+                        .foregroundColor(copiedToClipboard ? .green : .vercelSecondaryText)
+                        .frame(width: 32, height: 32)
+                        .background(Color.vercelCardBackground)
+                        .cornerRadius(4)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 4)
+                                .stroke(Color.vercelBorder, lineWidth: 1)
+                        )
+                }
+                .buttonStyle(.plain)
+                .pointerOnHover()
+            }
+        }
+        .padding(14)
+        .frame(width: 300)
+        .background(Color.vercelCardBackground)
     }
     
     // MARK: - Project Section
