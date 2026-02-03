@@ -8,6 +8,19 @@
         
         <!-- Updates will be automatically added here by GitHub Actions -->
         <item>
+            <title>Version 1.2.10</title>
+            <pubDate>Tue, 03 Feb 2026 03:06:26 +0000</pubDate>
+            <sparkle:version>1.2.10</sparkle:version>
+            <sparkle:shortVersionString>1.2.10</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+            <enclosure
+                url="https://github.com/ryanjmarcus/vercel-menu-bar/releases/download/v1.2.10/Vercel-Menu-Bar-1.2.10.zip"
+                sparkle:edSignature="cpckrfMsnxyvybSrX+ZvYWqaZHCjAlsQo/1vvjxNTH0OQ/6mPefPxVab5yG24CAzqUm+Xp4NMH3QRYdQ/N9zAA=="
+                length="6023705"
+                type="application/octet-stream"/>
+            <sparkle:releaseNotesLink>https://github.com/ryanjmarcus/vercel-menu-bar/releases/tag/v1.2.10</sparkle:releaseNotesLink>
+        </item>
+        <item>
             <title>Version 1.2.9</title>
             <pubDate>Sun, 01 Feb 2026 23:47:01 +0000</pubDate>
             <sparkle:version>1.2.9</sparkle:version>
