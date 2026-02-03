@@ -14,7 +14,7 @@ struct OverviewSection: View {
     let deployment: Deployment
     let project: VercelProject?
     
-    private var projectURL: String {
+    private var deploymentURL: String {
         let projectName = deployment.projectName
         
         // Extract team from deployment name
@@ -35,14 +35,18 @@ struct OverviewSection: View {
             teamSlug = nameComponents.last
         }
         
-        // Construct project URL: https://vercel.com/[team]/[project-name]
+        // Use the full deployment ID
+        let deploymentId = deployment.id
+        
+        // Construct deployment URL: https://vercel.com/[team]/[project]/[deployment-id]
         let encodedProjectName = projectName.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? projectName
+        let encodedDeploymentId = deploymentId.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? deploymentId
         
         if let team = teamSlug, !team.isEmpty {
             let encodedTeam = team.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? team
-            return "https://vercel.com/\(encodedTeam)/\(encodedProjectName)"
+            return "https://vercel.com/\(encodedTeam)/\(encodedProjectName)/\(encodedDeploymentId)"
         } else {
-            return "https://vercel.com/\(encodedProjectName)"
+            return "https://vercel.com/\(encodedProjectName)/\(encodedDeploymentId)"
         }
     }
     
@@ -55,7 +59,7 @@ struct OverviewSection: View {
 
                 Spacer()
                 
-                ExternalLinkButton("Open in Vercel", urlString: projectURL)
+                ExternalLinkButton("Open in Vercel", urlString: deploymentURL)
             }
             .padding(.top, -1.5)
             
