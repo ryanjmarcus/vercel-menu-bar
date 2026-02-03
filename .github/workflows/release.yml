@@ -245,6 +245,19 @@ jobs:
           cd build/export
           zip -r "../Vercel-Menu-Bar-${{ steps.get_version.outputs.VERSION }}.zip" "Vercel Menu Bar.app"
       
+      - name: Notarize ZIP
+        run: |
+          if [ -z "$HAS_NOTARIZATION" ]; then
+            echo "No notarization credentials, skipping..."
+            exit 0
+          fi
+          
+          xcrun notarytool submit "build/Vercel-Menu-Bar-${{ steps.get_version.outputs.VERSION }}.zip" \
+            --keychain-profile "notarization-profile" \
+            --wait
+          
+          echo "ZIP notarization complete"
+      
       - name: Sign update with Sparkle
         env:
           SPARKLE_PRIVATE_KEY: ${{ secrets.SPARKLE_PRIVATE_KEY }}
